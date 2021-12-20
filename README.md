@@ -3,6 +3,7 @@
 The idea behind this project is to create a "Smart" Linear Amplifier Controller to allow an Amateur "Ham" Transceiver to control an extenal amplifier with minimum or no manual intervention, this includes but not limited to: amplifier selelection (HF/VHF), band bass filter selection, TX/RX switching.
 
 DISCLAIMER 1: This is a work in progress and wasn't tested in real world.
+
 DISCLAIMER 2: I'm not a C/C++ programmer. Although I tried to keep the code well organized for easy maintenance, probably there are tons of errors and bad pratices.
 
 ## Compatible tranceivers

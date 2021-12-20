@@ -1,6 +1,6 @@
 #include <Arduino.h>
 
-#include "types.h"
+#include "Types.h"
 #include "Controller.h"
 #include "ICOM.h"
 #include "HardwareLayer.h"

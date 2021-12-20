@@ -2,7 +2,7 @@
 #define _BARGRAPH_CLASS_
 
 #include "TFT_eSPI.h"
-#include <Defines.h>
+#include "Defines.h"
 
 class BargraphBase
 {

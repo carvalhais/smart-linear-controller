@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <functional>
-#include <Defines.h>
-#include <Types.h>
+#include "Defines.h"
+#include "Types.h"
 
 typedef std::function<void(float forwardMv, float reverseMv)> SwrCb;
 
