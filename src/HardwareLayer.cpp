@@ -16,20 +16,20 @@ void HardwareLayer::onOutputSwrCallback(SwrCb cb)
 
 void HardwareLayer::onAmplifierChanged(Amplifier amp)
 {
-    char *desc;
+    const char *desc;
     switch (amp)
     {
     case AMP_HF:
-        desc = (char *)"HF";
+        desc = "HF";
         break;
     case AMP_VHF:
-        desc = (char *)"VHF";
+        desc = "VHF";
         break;
     case AMP_UHF:
-        desc = (char *)"UHF";
+        desc = "UHF";
         break;
     default:
-        desc = (char *)"Unknown";
+        desc = "Unknown";
         break;
     }
     _amp = amp;
@@ -47,39 +47,39 @@ void HardwareLayer::onLowPassFilterChanged(LowPassFilter lpf)
         digitalWrite(_lpfPin, 0);
     }
 
-    char *desc;
+    const char *desc;
     switch (lpf)
     {
     case BAND_160M:
-        desc = (char *)"160M";
+        desc = "160M";
         _lpfPin = PIN_LPF_160M;
         break;
     case BAND_80M:
-        desc = (char *)"80M";
+        desc = "80M";
         _lpfPin = PIN_LPF_80M;
         break;
     case BAND_60_40M:
-        desc = (char *)"60/40M";
+        desc = "60/40M";
         _lpfPin = PIN_LPF_60_40M;
         break;
     case BAND_30_20M:
-        desc = (char *)"30/20M";
+        desc = "30/20M";
         _lpfPin = PIN_LPF_30_20M;
         break;
     case BAND_17_15_12M:
-        desc = (char *)"17/15/12M";
+        desc = "17/15/12M";
         _lpfPin = PIN_LPF_17_15_12M;
         break;
     case BAND_10_11M:
-        desc = (char *)"10/11M";
+        desc = "10/11M";
         _lpfPin = PIN_LPF_10_11M;
         break;
     case BAND_6M:
-        desc = (char *)"6M";
+        desc = "6M";
         _lpfPin = PIN_LPF_6M;
         break;
     default:
-        desc = (char *)"Other";
+        desc = "Other";
         _lpfPin = 0;
         break;
     }

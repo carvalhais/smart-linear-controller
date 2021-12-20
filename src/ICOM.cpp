@@ -82,53 +82,6 @@ void ICOM::eventCallback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
     }
 }
 
-// uint8_t ICOM::readBluetoothBuffer()
-// {
-
-//     uint8_t byte;
-//     uint8_t counter = 0;
-//     uint32_t ed = _readTimeout;
-
-//     while (true)
-//     {
-//         while (!bt.available())
-//         {
-//             delay(10);
-//             if (--ed == 0)
-//                 return 0;
-//         }
-
-//         ed = _readTimeout;
-//         byte = bt.read();
-
-//         _readBuffer[counter++] = byte;
-
-//         if (byte == STOP_BYTE || byte == 0xFF)
-//         {
-//             handleNextMessage(_readBuffer);
-//             counter = 0;
-
-//             if (!bt.available()) //reached end of stream, stop reading
-//                 return counter;
-//         }
-
-//         if (counter >= BT_BUFFER_SIZE)
-//             return 0;
-//     }
-//     return counter;
-// }
-
-// void ICOM::waitForResponse()
-// {
-//     uint32_t ed = _readTimeout;
-//     while (_pendingResponse)
-//     {
-//         delay(100);
-//         if (--ed == 0)
-//             break;
-//     }
-// }
-
 void ICOM::dumpBuffer()
 {
     Serial.print("Buffer: ");
@@ -149,13 +102,6 @@ void ICOM::sendCodeRequest(uint8_t requestCode)
 
 void ICOM::sendRawRequest(uint8_t request[], uint8_t size)
 {
-    // uint16_t timeout = _readTimeout;
-    // while (!bt.availableForWrite())
-    // {
-    //     delay(10);
-    //     if (--timeout == 0)
-    //         break;
-    // }
     bt.write(request, size);
     bt.flush();
 }

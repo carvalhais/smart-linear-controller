@@ -15,7 +15,7 @@ Initially this project is aimed at QRP transceivers with single RF port, and the
 So far the following features are "working" (at least in the protoboard)
 
  - ICOM CI-V communication (frequency, mode and TX/RX status (PTT))
- - 320x240 TFT display using the excelent [TFT_eSPI](https://github.com/Bodmer/TFT_eSPI) Library (fast updates, smooth font rendering)
+ - 320x240 TFT display using the excellent [TFT_eSPI](https://github.com/Bodmer/TFT_eSPI) Library (fast updates, smooth font rendering)
  - POWER/SWR bargraphs with peak hold
  - Amp selection (VHF/UHF), TX/RX, and LPF selection GPIOs
 
