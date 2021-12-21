@@ -23,7 +23,7 @@ So far the following features are "working" (at least in the protoboard)
 
 Most of the efforts until now were put into the user interface. There are tons on nice DIY amplifiers borning nowadays that are still based on 70's 16x4 dot matrix displays, mostly because User Interface and graphics are a time consuming task and are usually left aside to focus on the RF stuff. 
 
-The goal of this projects is that it could be used as a platform for any kind on amplifier and you could focus on the electronics and easily adapt this code to suit your needs. 
+The goal of this project is that it could be used as a platform for any kind on amplifier and you could focus on the electronics and easily adapt this code to suit your needs. 
 
 The ESP32 SPI is capable of doing smooth font rendering (anti-aliased) and fast screen updates giving the same user experiencie of a known-brand transceiver.
 
