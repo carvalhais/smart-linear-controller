@@ -53,10 +53,10 @@ public:
 private:
     void onData(const uint8_t *buffer, size_t size);
     void eventCallback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param);
-    void dumpBuffer();
+    void dumpBuffer(uint8_t *buffer, uint8_t size);
     void sendCodeRequest(uint8_t requestCode);
     void sendRawRequest(uint8_t request[], uint8_t size);
-    void handleNextMessage(uint8_t *data);
+    void handleNextMessage(uint8_t *buffer, uint8_t size);
     void processCatMessages();
     FrequencyCb _frequencyCallback;
     ClientConnectedCb _clientConnectedCallback;
@@ -65,7 +65,6 @@ private:
     const uint32_t decMulti[10] = {1000000000, 100000000, 10000000, 1000000, 100000, 10000, 1000, 100, 10, 1};
     uint8_t _radioAddress;               //Transiever address
     uint32_t _readtimeout = 10;          //Serial port read timeout
-    uint8_t _readBuffer[BT_BUFFER_SIZE]; //Read buffer
     uint32_t _frequency;
     uint8_t _modulation = 0;
     uint8_t _filter = 0;

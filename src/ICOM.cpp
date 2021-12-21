@@ -32,9 +32,10 @@ void ICOM::onData(const uint8_t *buffer, size_t size)
             uint8_t size = n - offset + 1;
             if (size <= BT_BUFFER_SIZE)
             {
-                memcpy(_readBuffer, buffer + offset, size);
+                uint8_t chunk[size];
+                memcpy(chunk, buffer + offset, size);
                 offset += size;
-                handleNextMessage(_readBuffer);
+                handleNextMessage(chunk, size);
             }
         }
     }
@@ -82,13 +83,13 @@ void ICOM::eventCallback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
     }
 }
 
-void ICOM::dumpBuffer()
+void ICOM::dumpBuffer(uint8_t *buffer, uint8_t size)
 {
     Serial.print("Buffer: ");
-    for (uint8_t i = 0; i < BT_BUFFER_SIZE; i++)
+    for (uint8_t i = 0; i < size; i++)
     {
-        Serial.printf("%02X ", _readBuffer[i]);
-        if (_readBuffer[i] == STOP_BYTE || _readBuffer[i] == 0xFF)
+        Serial.printf("%02X ", buffer[i]);
+        if (buffer[i] == STOP_BYTE || buffer[i] == 0xFF)
             break;
     }
     Serial.println();
@@ -106,7 +107,7 @@ void ICOM::sendRawRequest(uint8_t request[], uint8_t size)
     bt.flush();
 }
 
-void ICOM::handleNextMessage(uint8_t *buffer)
+void ICOM::handleNextMessage(uint8_t *buffer, uint8_t size)
 {
     // <FE FE E0 42 04 00 01 FD  - LSB
     // <FE FE E0 42 03 00 00 58 45 01 FD  -145.580.000
@@ -131,6 +132,13 @@ void ICOM::handleNextMessage(uint8_t *buffer)
             case CMD_TRANS_FREQ:
             case CMD_READ_FREQ:
                 //Serial.println("READ_FREQ");
+                if (size < 10) // incomplete command
+                {
+#ifdef DEBUG
+                    Serial.printf("Invalid command size. Command: READ_FREQ, Expected: %d, Got: %d\n", 10, size);
+#endif
+                    return;
+                }
                 _frequency = 0;
                 for (uint8_t i = 0; i < 5; i++)
                 {
@@ -142,12 +150,26 @@ void ICOM::handleNextMessage(uint8_t *buffer)
                 break;
             case CMD_TRANS_MODE:
             case CMD_READ_MODE:
+                if (size < 7) // incomplete command
+                {
+#ifdef DEBUG
+                    Serial.printf("Invalid command size. Command: READ_MODE, Expected: %d, Got: %d\n", 7, size);
+#endif
+                    return;
+                }
                 //Serial.println("READ_MODE");
                 _modulation = buffer[5]; //FE FE E0 42 04 <00 01> FD
                 _filter = buffer[6];     //01 - Wide, 02 - Medium, 03 - Narrow
                 break;
             case CMD_TRANSMIT_STATE:
                 //Serial.println("TRANSMIT_STATE");
+                if (size < 8) // incomplete command
+                {
+#ifdef DEBUG
+                    Serial.printf("Invalid command size. Command: TRANSMIT_STATE, Expected: %d, Got: %d\n", 8, size);
+#endif
+                    return;
+                }
                 _txState = buffer[7] == 0x01;
                 break;
             case CMD_COMMAND_OK:
@@ -173,7 +195,7 @@ void ICOM::handleNextMessage(uint8_t *buffer)
 
 #ifdef DEBUG
         if (!knownCommand)
-            dumpBuffer();
+            dumpBuffer(buffer, size);
 #endif
     }
 }
