@@ -1,12 +1,12 @@
 # Smart Linear Amplifier Controller
 
-The idea behind this project is to create a "Smart" Linear Amplifier Controller to allow an Amateur "Ham" Transceiver to control an extenal amplifier with minimum or no manual intervention, this includes but not limited to: amplifier selelection (HF/VHF), band bass filter selection, TX/RX switching.
+The idea behind this project is to create a "Smart" Linear Amplifier Controller to allow an Amateur "Ham" Transceiver to control an external amplifier with minimum or no manual intervention, this includes but not limited to: amplifier selection (HF/VHF), band bass filter selection, TX/RX switching.
 
 DISCLAIMER 1: This is a work in progress and wasn't tested in real world.
 
-DISCLAIMER 2: I'm not a C/C++ programmer. Although I tried to keep the code well organized for easy maintenance, probably there are tons of errors and bad pratices. This is my first MCU based project and was used as a learning lab.
+DISCLAIMER 2: I'm not a C/C++ programmer. Although I tried to keep the code well organized for easy maintenance, probably there are tons of errors and bad practices. This is my first MCU based project and was used as a learning lab.
 
-## Compatible tranceivers
+## Compatible transceivers
 
 Initially this project is aimed at QRP transceivers with single RF port, and the ICOM IC-705 with Bluetooth CI-V port is used as the test rig. Other transceivers can be added in the future.
 
@@ -21,11 +21,11 @@ So far the following features are "working" (at least in the protoboard)
 
 ## User Interface
 
-Most of the efforts until now were put into the user interface. There are tons on nice DIY amplifiers borning nowadays that are still based on 70's 16x4 dot matrix displays, mostly because User Interface and graphics are a time consuming task and are usually left aside to focus on the RF stuff. 
+Most of the efforts until now were put into the user interface. Tons on nice DIY amplifiers borning nowadays that are still based on 70's 16x4 dot matrix displays, mostly because User Interface and graphics are a time consuming task and are usually left aside to focus on the RF stuff. 
 
 The goal of this project is that it could be used as a platform for any kind on amplifier and you could focus on the electronics and easily adapt this code to suit your needs. 
 
-The ESP32 SPI is capable of doing smooth font rendering (anti-aliased) and fast screen updates giving the same user experiencie of a known-brand transceiver.
+The ESP32 SPI is capable of doing smooth font rendering (anti-aliased) and fast screen updates giving the same user experience of a known-brand transceiver.
 
 ![TFT Screen Capture](https://raw.githubusercontent.com/aldoir/smart-linear-controller/main/assets/screen-capture.png)
 
@@ -35,7 +35,7 @@ This project uses the ESP32 processor and the ILI9341 TFT display.
 
 ## Development IDE
 
-[PlatformIO](https://platformio.org/) was choosen as the IDE because it uses Visual Studio Code and allow a better code and dependency management. If this is your first time, download VS Code and install the PlatformIO extension.
+[PlatformIO](https://platformio.org/) was chosen as the IDE because it uses Visual Studio Code and allow a better code and dependency management. If this is your first time, download VS Code and install the PlatformIO extension.
 
 ## License
 
@@ -45,4 +45,4 @@ A visible credit to the original developer (PU5VEN) is always welcome.
 
 ## Author
 
-You can reach me at my QRZ page [PU5VEN](https://www.qrz.com/db/pu5ven). or open an issue
+You can reach me at my QRZ page [PU5VEN](https://www.qrz.com/db/pu5ven) or open an issue
