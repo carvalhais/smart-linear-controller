@@ -24,12 +24,15 @@ void ICOM::onDisconnectedCallback(ClientDisconnectedCb callback)
 
 void ICOM::onData(const uint8_t *buffer, size_t size)
 {
-    uint16_t offset = 0;
-    for (uint8_t n = 0; n < size; n++)
+#ifdef DEBUG
+    dumpBuffer((uint8_t *)buffer, size);
+#endif
+    size_t offset = 0;
+    for (size_t n = 0; n < size; n++)
     {
         if (buffer[n] == STOP_BYTE || buffer[n] == 0xFF)
         {
-            uint8_t size = n - offset + 1;
+            size_t size = n - offset + 1;
             if (size <= BT_BUFFER_SIZE)
             {
                 uint8_t chunk[size];
@@ -77,20 +80,18 @@ void ICOM::eventCallback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
 
         break;
     default:
-#ifdef DEBUG
-        Serial.printf("BT Event: %d\n", event);
-#endif
+        DBG("BT Event: %d\n", event);
     }
 }
 
 void ICOM::dumpBuffer(uint8_t *buffer, uint8_t size)
 {
-    Serial.print("Buffer: ");
+    Serial.print("<< ");
     for (uint8_t i = 0; i < size; i++)
     {
         Serial.printf("%02X ", buffer[i]);
-        if (buffer[i] == STOP_BYTE || buffer[i] == 0xFF)
-            break;
+        if ((buffer[i] == STOP_BYTE || buffer[i] == 0xFF) && i < (size - 1))
+            Serial.printf("\n<< ");
     }
     Serial.println();
 }
@@ -120,104 +121,121 @@ void ICOM::handleNextMessage(uint8_t *buffer, uint8_t size)
 
     bool knownCommand = true;
 
+    if (size < 5)
+    {
+        DBG("Invalid command size.Expected: %d, Got: %d\n", 5, size);
+        return;
+    }
+
     if (buffer[0] == START_BYTE && buffer[1] == START_BYTE)
     {
-        //if (buffer[3] == radio_address)
-        //{
-
-        if (buffer[2] == CONTROLLER_ADDRESS || buffer[2] == BROADCAST_ADDRESS)
+        if (buffer[3] == _radioAddress || (_radioAddress == 0x00 && buffer[4] == CMD_READ_FREQ))
         {
-            switch (buffer[4])
+            if (_radioAddress == 0x00 && buffer[3] != 0x00)
             {
-            case CMD_TRANS_FREQ:
-            case CMD_READ_FREQ:
-                //Serial.println("READ_FREQ");
-                if (size < 10) // incomplete command
-                {
-#ifdef DEBUG
-                    Serial.printf("Invalid command size. Command: READ_FREQ, Expected: %d, Got: %d\n", 10, size);
-#endif
-                    return;
-                }
-                _frequency = 0;
-                for (uint8_t i = 0; i < 5; i++)
-                {
-                    if (buffer[9 - i] == 0xFD)
-                        continue; //spike
-                    _frequency += (buffer[9 - i] >> 4) * decMulti[i * 2];
-                    _frequency += (buffer[9 - i] & 0x0F) * decMulti[i * 2 + 1];
-                }
-                break;
-            case CMD_TRANS_MODE:
-            case CMD_READ_MODE:
-                if (size < 7) // incomplete command
-                {
-#ifdef DEBUG
-                    Serial.printf("Invalid command size. Command: READ_MODE, Expected: %d, Got: %d\n", 7, size);
-#endif
-                    return;
-                }
-                //Serial.println("READ_MODE");
-                _modulation = buffer[5]; //FE FE E0 42 04 <00 01> FD
-                _filter = buffer[6];     //01 - Wide, 02 - Medium, 03 - Narrow
-                break;
-            case CMD_TRANSMIT_STATE:
-                //Serial.println("TRANSMIT_STATE");
-                if (size < 8) // incomplete command
-                {
-#ifdef DEBUG
-                    Serial.printf("Invalid command size. Command: TRANSMIT_STATE, Expected: %d, Got: %d\n", 8, size);
-#endif
-                    return;
-                }
-                _txState = buffer[7] == 0x01;
-                break;
-            case CMD_COMMAND_OK:
-                //FE FE E0 A4 FB FD
-                break;
-            default:
-                knownCommand = false;
+                _radioAddress = buffer[3];
+                DBG("Got radio address: %2X\n", _radioAddress);
             }
 
-            if (knownCommand)
+            //DBG("Radio address: %2X, CMD: %2X\n", buffer[3], buffer[4]);
+
+            if (buffer[2] == CONTROLLER_ADDRESS || buffer[2] == BROADCAST_ADDRESS)
             {
-                if (_frequencyCallback)
+                switch (buffer[4])
                 {
-                    _frequencyCallback(
-                        _frequency,
-                        _modulation,
-                        _filter,
-                        _txState);
+                case CMD_TRANS_FREQ:
+                case CMD_READ_FREQ:
+                    //Serial.println("READ_FREQ");
+                    if (size < 10) // incomplete command
+                    {
+                        DBG("Invalid command size. Command: READ_FREQ, Expected: %d, Got: %d\n", 10, size);
+                        return;
+                    }
+                    _frequency = 0;
+                    for (uint8_t i = 0; i < 5; i++)
+                    {
+                        if (buffer[9 - i] == 0xFD)
+                            continue; //spike
+                        _frequency += (buffer[9 - i] >> 4) * decMulti[i * 2];
+                        _frequency += (buffer[9 - i] & 0x0F) * decMulti[i * 2 + 1];
+                    }
+                    break;
+                case CMD_TRANS_MODE:
+                case CMD_READ_MODE:
+                    if (size < 7) // incomplete command
+                    {
+                        DBG("Invalid command size. Command: READ_MODE, Expected: %d, Got: %d\n", 7, size);
+                        return;
+                    }
+                    //Serial.println("READ_MODE");
+                    _modulation = buffer[5]; //FE FE E0 42 04 <00 01> FD
+                    _filter = buffer[6];     //01 - Wide, 02 - Medium, 03 - Narrow
+                    break;
+                case CMD_TRANSMIT_STATE:
+                    //Serial.println("TRANSMIT_STATE");
+                    if (size < 8) // incomplete command
+                    {
+                        DBG("Invalid command size. Command: TRANSMIT_STATE, Expected: %d, Got: %d\n", 8, size);
+                        return;
+                    }
+                    _txState = buffer[7] == 0x01;
+                    break;
+                case CMD_COMMAND_OK:
+                    //FE FE E0 A4 FB FD
+                    break;
+                default:
+                    knownCommand = false;
+                }
+
+                if (knownCommand)
+                {
+                    if (_frequencyCallback)
+                    {
+                        _frequencyCallback(
+                            _frequency,
+                            _modulation,
+                            _filter,
+                            _txState);
+                    }
                 }
             }
         }
-        //}
 
 #ifdef DEBUG
         if (!knownCommand)
+        {
+            DBG("Unknown command: \n");
             dumpBuffer(buffer, size);
+        }
 #endif
     }
 }
 
-void ICOM::initializeRig()
+bool ICOM::initializeRig()
 {
-#ifdef DEBUG
-    Serial.println(">> CMD_READ_MODE");
-#endif
-    // Read currenet mode
-    sendCodeRequest(CMD_READ_MODE);
-
-#ifdef DEBUG
-    Serial.println(">> CMD_TRANSMIT_STATE");
-#endif
-    //Subscribe for TX state changes
-    uint8_t req[] = {START_BYTE, START_BYTE, _radioAddress, CONTROLLER_ADDRESS, CMD_TRANSMIT_STATE, 0x00, 0x00, 0x01, STOP_BYTE};
-    sendRawRequest(req, sizeof(req));
-
-#ifdef DEBUG
-    Serial.println(">> CMD_READ_FREQ");
-#endif
-    // Read frequency for the first time
+    DBG(">> CMD_READ_FREQ\n");
+    // First request is sent to the broadcast address (0x00), once the radioAddress is received, next request are sent
     sendCodeRequest(CMD_READ_FREQ);
+    uint8_t timeout = _readtimeout;
+    while (_radioAddress == 0x00)
+    {
+        delay(100);
+        if (--timeout == 0)
+            break;
+    }
+    if (_radioAddress == 0x00)
+    {
+        return false;
+    }
+    else
+    {
+        DBG(">> CMD_TRANSMIT_STATE + CMD_READ_FREQ\n");
+        uint8_t req[] = {
+            START_BYTE, START_BYTE, _radioAddress, CONTROLLER_ADDRESS, CMD_READ_MODE, STOP_BYTE,                       // Read currenet mode
+            START_BYTE, START_BYTE, _radioAddress, CONTROLLER_ADDRESS, CMD_TRANSMIT_STATE, 0x00, 0x00, 0x01, STOP_BYTE //Subscribe for TX state changes
+        };
+
+        sendRawRequest(req, sizeof(req));
+        return true;
+    }
 }

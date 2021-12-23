@@ -3,6 +3,7 @@
 
 #include "BluetoothSerial.h"
 #include "Defines.h"
+#include "Types.h"
 
 #define BROADCAST_ADDRESS 0x00  //Broadcast address
 #define CONTROLLER_ADDRESS 0xE0 //Controller address
@@ -47,7 +48,7 @@ public:
     void onFrequencyCallback(FrequencyCb cb);
     void onConnectedCallback(ClientConnectedCb cb);
     void onDisconnectedCallback(ClientDisconnectedCb cb);
-    void initializeRig();
+    bool initializeRig();
     static ICOM *instance;
 
 private:
@@ -63,12 +64,12 @@ private:
     ClientDisconnectedCb _clientDisconnectedCallback;
     BluetoothSerial bt;
     const uint32_t decMulti[10] = {1000000000, 100000000, 10000000, 1000000, 100000, 10000, 1000, 100, 10, 1};
-    uint8_t _radioAddress;               //Transiever address
-    uint32_t _readtimeout = 10;          //Serial port read timeout
+    uint8_t _radioAddress = 0x00;
+    uint8_t _readtimeout = 10;
     uint32_t _frequency;
     uint8_t _modulation = 0;
     uint8_t _filter = 0;
-    uint16_t _readTimeout = 100; //*10ms
+    uint16_t _readTimeout = 100; //*100ms
     bool _txState = false;
 };
 

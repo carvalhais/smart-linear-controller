@@ -52,9 +52,7 @@ void Controller::onOutputSwr(float forwardMv, float reverseMv)
 
 void Controller::onFrequencyChanged(uint32_t frequency, uint8_t modulation, uint8_t filter, bool txState)
 {
-#ifdef DEBUG
-    //Serial.printf("Controller::onFrequencyChanged [Core %d]\n", xPortGetCoreID());
-#endif
+    //DBG("Controller::onFrequencyChanged [Core %d]\n", xPortGetCoreID());
 
     uint32_t mainfreq = frequency / 1000;
 
@@ -80,8 +78,6 @@ void Controller::onFrequencyChanged(uint32_t frequency, uint8_t modulation, uint
         }
     }
 
-    //'Serial.printf("Freq: %d, Modulation: %d, Amp: %d, LPF: %d\n", mainfreq, modulation, _lastAmp, _lastLpf);
-
     _transmitEnabled = modulation <= 5 &&
                        strcmp(_lastBand.name, "-") != 0 &&
                        strcmp(_lastBand.name, "UHF") != 0;
@@ -93,52 +89,51 @@ void Controller::onFrequencyChanged(uint32_t frequency, uint8_t modulation, uint
         if (_transmitCallback && _transmitEnabled)
             _transmitCallback(txState);
 
-        //Serial.printf("BT PTT Changed: %s (%lu)\n", txState ? "true" : "false", millis());
+        //DBG("BT PTT Changed: %s (%lu)\n", txState ? "true" : "false", millis());
     }
 
-    //Serial.printf("Band: %s\n", _lastBand.name);
     _freq.frequencyChanged(frequency, modulation, filter, txState, _lastBand.name, _transmitEnabled);
 }
 
 void Controller::onClientConnected(uint8_t macAddress[6])
 {
-#ifdef DEBUG
-    Serial.printf("Controller::onClientConnected [Core %d]\n", xPortGetCoreID());
-#endif
+    DBG("Controller::onClientConnected [Core %d]\n", xPortGetCoreID());
     _connected = true;
 }
 
 void Controller::start()
 {
-#ifdef DEBUG
-    Serial.printf("Controller::start() [Core %d]\n", xPortGetCoreID());
-#endif
-    //fill the body region to clear any previous content
-    _tft.fillRect(1, HEADER_HEIGHT + 1, SCREEN_WIDTH - 2, SCREEN_HEIGHT - HEADER_HEIGHT - 2, TFT_BLACK);
+    DBG("Controller::start() [Core %d]\n", xPortGetCoreID());
 
-    //initialize the Frequency Widget
-    _freq.begin(1, HEADER_HEIGHT + 1, SCREEN_WIDTH - 2, 40, &_tft, EurostileNextProWide13, EurostileNextProNr18, EurostileNextProSemiBold32);
+    if (_rig->initializeRig())
+    {
+        //fill the body region to clear any previous content
+        _tft.fillRect(1, HEADER_HEIGHT + 1, SCREEN_WIDTH - 2, SCREEN_HEIGHT - HEADER_HEIGHT - 2, TFT_BLACK);
 
-    //initialize the bargraphs (input and output meters)
-    _meters.begin(1, 61, SCREEN_WIDTH - 2, 119, &_tft, Tahoma9Sharp, EurostileNextProNr18);
+        //initialize the Frequency Widget
+        _freq.begin(1, HEADER_HEIGHT + 1, SCREEN_WIDTH - 2, 40, &_tft, EurostileNextProWide13, EurostileNextProNr18, EurostileNextProSemiBold32);
 
-    //"Digital" meters at the bottom
-    _bottom.begin(1, 180, SCREEN_WIDTH - 2, 40, &_tft, Tahoma9Sharp, EurostileNextProNr18);
-    _bottom.updateVolts(24);
-    _bottom.updateAmperes(0.1);
-    _bottom.updateTemperature(56);
-    _bottom.updateAntenna((char *)"ANT A");
+        //initialize the bargraphs (input and output meters)
+        _meters.begin(1, 61, SCREEN_WIDTH - 2, 119, &_tft, Tahoma9Sharp, EurostileNextProNr18);
 
-    _rig->initializeRig();
+        //"Digital" meters at the bottom
+        _bottom.begin(1, 180, SCREEN_WIDTH - 2, 40, &_tft, Tahoma9Sharp, EurostileNextProNr18);
+        _bottom.updateVolts(24);
+        _bottom.updateAmperes(0.1);
+        _bottom.updateTemperature(56);
+        _bottom.updateAntenna((char *)"ANT A");
 
-    _started = true;
+        _started = true;
+    }
+    else
+    {
+        DBG("Controller::start() Unable to initialize transceiver\n");
+    }
 }
 
 void Controller::onClientDisconnected()
 {
-#ifdef DEBUG
-    Serial.printf("Controller::onClientDisconnected [Core %d]\n", xPortGetCoreID());
-#endif
+    DBG("Controller::onClientDisconnected [Core %d]\n", xPortGetCoreID());
     _connected = false;
 }
 
@@ -162,9 +157,7 @@ void Controller::loop()
 
 void Controller::begin(ICOM *rig)
 {
-#ifdef DEBUG
-    Serial.printf("Controller::begin [Core %d]\n", xPortGetCoreID());
-#endif
+    DBG("Controller::begin [Core %d]\n", xPortGetCoreID());
     _rig = rig;
     _tft.init();
 
@@ -178,9 +171,7 @@ void Controller::begin(ICOM *rig)
 
 void Controller::end()
 {
-#ifdef DEBUG
-    Serial.printf("Controller::end() [Core %d]\n", xPortGetCoreID());
-#endif
+    DBG("Controller::end() [Core %d]\n", xPortGetCoreID());
     if (_started)
     {
         _ui.clearScreen();

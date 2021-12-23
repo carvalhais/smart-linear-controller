@@ -34,9 +34,7 @@ void HardwareLayer::onAmplifierChanged(Amplifier amp)
     }
     _amp = amp;
     digitalWrite(PIN_HF_VHF_AMP, amp == AMP_HF ? 1 : 0);
-#ifdef DEBUG
-    Serial.printf("Amplifier changed: %s\n", desc);
-#endif
+    DBG("Amplifier changed: %s\n", desc);
 }
 
 void HardwareLayer::onLowPassFilterChanged(LowPassFilter lpf)
@@ -89,9 +87,7 @@ void HardwareLayer::onLowPassFilterChanged(LowPassFilter lpf)
     {
         digitalWrite(_lpfPin, 1);
     }
-#ifdef DEBUG
-    Serial.printf("LPF changed: %s\n", desc);
-#endif
+    DBG("LPF changed: %s\n", desc);
 }
 
 void HardwareLayer::onTransmitChanged(bool state)

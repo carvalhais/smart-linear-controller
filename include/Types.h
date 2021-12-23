@@ -17,7 +17,8 @@ enum LowPassFilter
     BAND_70CM,
 };
 
-enum Amplifier {
+enum Amplifier
+{
     AMP_UNKNOWN,
     AMP_HF,
     AMP_VHF,

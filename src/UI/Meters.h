@@ -2,6 +2,7 @@
 #include <TFT_eSPI.h>
 
 #include "UI.h"
+#include "Types.h"
 #include "Bargraph/BargraphSwr.h"
 #include "Bargraph/BargraphRfPower.h"
 

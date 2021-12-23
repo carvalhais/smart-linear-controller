@@ -3,6 +3,7 @@
 
 #include "TFT_eSPI.h"
 #include "Defines.h"
+#include "Types.h"
 
 class BargraphBase
 {

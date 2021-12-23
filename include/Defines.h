@@ -1,6 +1,5 @@
 
 #define BT_NAME "IC-705 Linear"
-//#define HEADER_TITLE "IC-705 HF/VHF Amplifier"
 #define HEADER_TITLE "SMART HF/VHF LINEAR CONTROLLER"
 
 #define DEBUG 1
@@ -38,3 +37,10 @@
 #define BARGRAPH_COLOR_ON 0x000F   //TFT_NAVY;
 #define BARGRAPH_COLOR_OFF 0xC618  //TFT_SILVER;
 #define BARGRAPH_COLOR_FONT 0xC618 //TFT_SILVER;
+
+
+#ifdef DEBUG    //Macros are usually in all capital letters.
+   #define DBG(...)    Serial.printf(__VA_ARGS__)
+#else
+   #define DBG(...)     //now defines a blank line
+#endif

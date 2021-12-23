@@ -32,7 +32,7 @@ void BargraphBase::begin(uint32_t x, uint32_t y, uint32_t w, uint32_t h, TFT_eSP
   _numBars = _laneW / (_laneW / divider);
   _barWidth = _laneW / _numBars;
 
-  //Serial.printf("_w: %d, _laneW: %d, _numBars: %d, _barWidth: %d\n", _w, _laneW, _numBars, _barWidth);
+  //DBG("_w: %d, _laneW: %d, _numBars: %d, _barWidth: %d\n", _w, _laneW, _numBars, _barWidth);
 
   _tft = tft;
   _spr = std::unique_ptr<TFT_eSprite>(new TFT_eSprite(tft));
