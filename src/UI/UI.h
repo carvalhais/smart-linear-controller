@@ -19,6 +19,8 @@ protected:
     uint8_t *_mediumFont;
     TFT_eSPI *_tft;
     std::unique_ptr<TFT_eSprite> _spr;
+private:
+    
 };
 
 #endif

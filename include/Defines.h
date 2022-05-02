@@ -22,6 +22,8 @@
 #define PIN_LPF_10_11M 25
 #define PIN_LPF_6M 5
 
+#define PIN_PSU_CONTROL 21
+
 #define FREQ_VHF_AMP 60000
 
 #define SCREEN_WIDTH 320
@@ -44,3 +46,5 @@
 #else
    #define DBG(...)     //now defines a blank line
 #endif
+
+#define minimum(a,b)     (((a) < (b)) ? (a) : (b))

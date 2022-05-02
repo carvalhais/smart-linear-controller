@@ -93,7 +93,7 @@ void HardwareLayer::onLowPassFilterChanged(LowPassFilter lpf)
 void HardwareLayer::onTransmitChanged(bool state)
 {
     uint8_t pin = _amp == AMP_VHF ? PIN_TX_VHF : PIN_TX_HF;
-    digitalWrite(pin, state);
+    digitalWrite(pin, state ? 0 : 1);
 }
 
 float HardwareLayer::readVpp(uint8_t pin)
@@ -112,10 +112,13 @@ void HardwareLayer::begin()
     digitalWrite(PIN_HF_VHF_AMP, 0);
 
     pinMode(PIN_TX_VHF, OUTPUT);
-    digitalWrite(PIN_TX_VHF, 0);
+    digitalWrite(PIN_TX_VHF, 1);
 
     pinMode(PIN_TX_HF, OUTPUT);
-    digitalWrite(PIN_TX_HF, 0);
+    digitalWrite(PIN_TX_HF, 1);
+
+    pinMode(PIN_PSU_CONTROL, OUTPUT);
+    digitalWrite(PIN_PSU_CONTROL, 1);
 }
 
 void HardwareLayer::loop()
@@ -147,4 +150,10 @@ float HardwareLayer::readPowerSwr(uint8_t pinForward, uint8_t pinReverse, SwrCb 
     }
 
     return fwdMv;
+}
+
+void HardwareLayer::onPowerSupplyChanged(bool state)
+{
+    DBG("PSU: %s\n", state ? "ON" : "OFF");
+    digitalWrite(PIN_PSU_CONTROL, state ? 0 : 1);
 }

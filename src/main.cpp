@@ -1,6 +1,6 @@
 #include <Arduino.h>
-
 #include "Types.h"
+
 #include "Controller.h"
 #include "ICOM.h"
 #include "HardwareLayer.h"
@@ -50,13 +50,17 @@ void setup()
                          std::placeholders::_1);
 
   auto cbTx = std::bind(&HardwareLayer::onTransmitChanged,
+                        &hal,
+                        std::placeholders::_1);
+
+  auto cbPsu = std::bind(&HardwareLayer::onPowerSupplyChanged,
                          &hal,
-                         std::placeholders::_1);                         
+                         std::placeholders::_1);
 
   ctl.onAmplifierCallback(cbAmp);
   ctl.onLowPassFilterCallback(cbLpf);
   ctl.onTransmitCallback(cbTx);
-
+  ctl.onPowerSupplyCallback(cbPsu);
   icom.begin(BT_NAME);
 
   ctl.begin(&icom);

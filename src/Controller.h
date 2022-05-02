@@ -20,6 +20,7 @@
 typedef std::function<void(Amplifier amp)> AmplifierCb;
 typedef std::function<void(LowPassFilter lpf)> LowPassFilterCb;
 typedef std::function<void(bool state)> TransmitCb;
+typedef std::function<void(bool state)> PowerSupplyCb;
 
 class Controller
 {
@@ -36,6 +37,7 @@ public:
     void onAmplifierCallback(AmplifierCb callback);
     void onLowPassFilterCallback(LowPassFilterCb callback);
     void onTransmitCallback(TransmitCb callback);
+    void onPowerSupplyCallback(PowerSupplyCb callback);
 
     void onInputSwr(float forwardMv, float reverseMv);
     void onOutputSwr(float forwardMv, float reverseMv);
@@ -154,6 +156,7 @@ private:
     AmplifierCb _amplifierCallback;
     LowPassFilterCb _lowPassFilterCallback;
     TransmitCb _transmitCallback;
+    PowerSupplyCb _psuCallback;
 
     volatile bool _started = false;
     volatile bool _connected = false;

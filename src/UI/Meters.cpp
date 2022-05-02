@@ -55,7 +55,7 @@ void Meters::updateInputSwr(float forwardMv, float reverseMv)
     float fwdWatts = pow(forwardMv, 2) * 10;
     _meterInputPower.setValue(fwdWatts);
 
-    DBG("INPUT: Fwd: %1.3f, Rev: %1.3f, Watts: %1.2f, Ratio: %1.3f\n", forwardMv, reverseMv, fwdWatts, (forwardMv > 0 ? reverseMv / forwardMv : 0));
+    //DBG("INPUT: Fwd: %1.3f, Rev: %1.3f, Watts: %1.2f, Ratio: %1.3f\n", forwardMv, reverseMv, fwdWatts, (forwardMv > 0 ? reverseMv / forwardMv : 0));
 
     if (forwardMv > 0 && forwardMv >= reverseMv)
     {

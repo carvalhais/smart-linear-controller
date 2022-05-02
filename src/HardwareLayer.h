@@ -16,6 +16,7 @@ public:
     void onAmplifierChanged(Amplifier amp);
     void onLowPassFilterChanged(LowPassFilter lpf);
     void onTransmitChanged(bool state);
+    void onPowerSupplyChanged(bool state);
 
     void begin();
     void loop();

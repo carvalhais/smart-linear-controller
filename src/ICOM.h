@@ -20,6 +20,9 @@
 #define CMD_WRITE_FREQ 0x05 //Write operating frequency data
 #define CMD_WRITE_MODE 0x06 //Write operating mode data
 
+#define CMD_READ_INFO 0x15 // Read varios meters (Signal, Power)
+#define CMD_SUB_S_METER 0x02 // S-Meter reading
+
 #define CMD_TRANSMIT_STATE 0x24 //Read TX Mode (On/Off)
 #define CMD_COMMAND_OK 0xFB     //Last command was accepted
 

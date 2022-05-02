@@ -48,7 +48,7 @@ void ICOM::begin(String bluetoothName)
 {
     bt.begin(bluetoothName);
 
-    //wrapper for "C-styled" callbacks. The onData event is already ported to C++ std::bind paradigm
+    // wrapper for "C-styled" callbacks. The onData event is already ported to C++ std::bind paradigm
     bt.register_callback(+[](esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
                          { ICOM::instance->eventCallback(event, param); });
 
@@ -73,8 +73,8 @@ void ICOM::eventCallback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
         }
         break;
     case ESP_SPP_DATA_IND_EVT: // Data Received: Useless as it dont flush internal buffer
-        //readBluetoothBuffer();
-        //Serial.printf("BT Data Received: %d\n", param->data_ind.len);
+        // readBluetoothBuffer();
+        // Serial.printf("BT Data Received: %d\n", param->data_ind.len);
         break;
     case ESP_SPP_WRITE_EVT: // Write complete
 
@@ -123,7 +123,7 @@ void ICOM::handleNextMessage(uint8_t *buffer, uint8_t size)
 
     if (size < 5)
     {
-        DBG("Invalid command size.Expected: %d, Got: %d\n", 5, size);
+        DBG("Invalid command size. Expected: %d, Got: %d\n", 5, size);
         return;
     }
 
@@ -137,7 +137,7 @@ void ICOM::handleNextMessage(uint8_t *buffer, uint8_t size)
                 DBG("Got radio address: %2X\n", _radioAddress);
             }
 
-            //DBG("Radio address: %2X, CMD: %2X\n", buffer[3], buffer[4]);
+            // DBG("Radio address: %2X, CMD: %2X\n", buffer[3], buffer[4]);
 
             if (buffer[2] == CONTROLLER_ADDRESS || buffer[2] == BROADCAST_ADDRESS)
             {
@@ -145,7 +145,7 @@ void ICOM::handleNextMessage(uint8_t *buffer, uint8_t size)
                 {
                 case CMD_TRANS_FREQ:
                 case CMD_READ_FREQ:
-                    //Serial.println("READ_FREQ");
+                    // Serial.println("READ_FREQ");
                     if (size < 10) // incomplete command
                     {
                         DBG("Invalid command size. Command: READ_FREQ, Expected: %d, Got: %d\n", 10, size);
@@ -155,7 +155,7 @@ void ICOM::handleNextMessage(uint8_t *buffer, uint8_t size)
                     for (uint8_t i = 0; i < 5; i++)
                     {
                         if (buffer[9 - i] == 0xFD)
-                            continue; //spike
+                            continue; // spike
                         _frequency += (buffer[9 - i] >> 4) * decMulti[i * 2];
                         _frequency += (buffer[9 - i] & 0x0F) * decMulti[i * 2 + 1];
                     }
@@ -167,12 +167,12 @@ void ICOM::handleNextMessage(uint8_t *buffer, uint8_t size)
                         DBG("Invalid command size. Command: READ_MODE, Expected: %d, Got: %d\n", 7, size);
                         return;
                     }
-                    //Serial.println("READ_MODE");
-                    _modulation = buffer[5]; //FE FE E0 42 04 <00 01> FD
-                    _filter = buffer[6];     //01 - Wide, 02 - Medium, 03 - Narrow
+                    // Serial.println("READ_MODE");
+                    _modulation = buffer[5]; // FE FE E0 42 04 <00 01> FD
+                    _filter = buffer[6];     // 01 - Wide, 02 - Medium, 03 - Narrow
                     break;
                 case CMD_TRANSMIT_STATE:
-                    //Serial.println("TRANSMIT_STATE");
+                    // Serial.println("TRANSMIT_STATE");
                     if (size < 8) // incomplete command
                     {
                         DBG("Invalid command size. Command: TRANSMIT_STATE, Expected: %d, Got: %d\n", 8, size);
@@ -180,8 +180,21 @@ void ICOM::handleNextMessage(uint8_t *buffer, uint8_t size)
                     }
                     _txState = buffer[7] == 0x01;
                     break;
+                    /*
+                case CMD_READ_INFO:
+                    switch (buffer[5])
+                    {
+                    case CMD_SUB_S_METER: // S-Meter
+                        char str[2];
+                        sprintf(str, "%02x%02x", buffer[6], buffer[7]);
+                        int value = atoi(str);
+                        DBG("s-meter %d\n", value);
+                        break;
+                    }
+                    break;
+                    */
                 case CMD_COMMAND_OK:
-                    //FE FE E0 A4 FB FD
+                    // FE FE E0 A4 FB FD
                     break;
                 default:
                     knownCommand = false;
@@ -229,10 +242,10 @@ bool ICOM::initializeRig()
     }
     else
     {
-        DBG(">> CMD_TRANSMIT_STATE + CMD_READ_FREQ\n");
+        DBG(">> CMD_READ_MODE + CMD_TRANSMIT_STATE\n");
         uint8_t req[] = {
             START_BYTE, START_BYTE, _radioAddress, CONTROLLER_ADDRESS, CMD_READ_MODE, STOP_BYTE,                       // Read currenet mode
-            START_BYTE, START_BYTE, _radioAddress, CONTROLLER_ADDRESS, CMD_TRANSMIT_STATE, 0x00, 0x00, 0x01, STOP_BYTE //Subscribe for TX state changes
+            START_BYTE, START_BYTE, _radioAddress, CONTROLLER_ADDRESS, CMD_TRANSMIT_STATE, 0x00, 0x00, 0x01, STOP_BYTE // Subscribe for TX state changes
         };
 
         sendRawRequest(req, sizeof(req));

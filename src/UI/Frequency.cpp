@@ -37,7 +37,9 @@ void Frequency::gradientButton(
         uint16_t color = _spr->alphaBlend(alpha, bottomColor, topColor);
         _spr->drawFastHLine(start, y + i, width, color);
     }
+    
     _spr->drawRoundRect(x, y, w, h, radius, borderColor);
+
     if (dashed)
     {
         uint8_t dashWidth = 2;
