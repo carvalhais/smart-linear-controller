@@ -4,23 +4,24 @@
 
 #define DEBUG 1
 
-#define PIN_INPUT_SWR_FWD 33
+#define DEG2RAD 0.0174532925
+
+#define PIN_INPUT_SWR_FWD 36
 #define PIN_INPUT_SWR_REV 32
 
 #define PIN_OUTPUT_SWR_FWD 34
 #define PIN_OUTPUT_SWR_REV 35
 
-#define PIN_HF_VHF_AMP 15
-#define PIN_TX_VHF 2
-#define PIN_TX_HF 4
+#define PIN_HF_VHF_AMP 2 // OK
+#define PIN_TX_VHF 0 // OK
+#define PIN_TX_HF 13 // OK
 
-#define PIN_LPF_160M 13
-#define PIN_LPF_80M 12
-#define PIN_LPF_60_40M 14
-#define PIN_LPF_30_20M 27
-#define PIN_LPF_17_15_12M 26
-#define PIN_LPF_10_11M 25
-#define PIN_LPF_6M 5
+#define PIN_LPF_A 17 // OK
+#define PIN_LPF_B 26 // OK
+#define PIN_LPF_C 16 // OK
+
+#define PIN_PULSE_RX 5 // OK
+#define PIN_PULSE_TX 22 // OK
 
 #define PIN_PSU_CONTROL 21
 
@@ -39,7 +40,14 @@
 #define BARGRAPH_COLOR_ON 0x000F   //TFT_NAVY;
 #define BARGRAPH_COLOR_OFF 0xC618  //TFT_SILVER;
 #define BARGRAPH_COLOR_FONT 0xC618 //TFT_SILVER;
+#define TFT_GREY 0x5AEB
 
+#define BLK_PWM_CHANNEL 7
+#define TFT_BL 32
+
+#define BUTTON_A 39
+#define BUTTON_B 38
+#define BUTTON_C 37
 
 #ifdef DEBUG    //Macros are usually in all capital letters.
    #define DBG(...)    Serial.printf(__VA_ARGS__)

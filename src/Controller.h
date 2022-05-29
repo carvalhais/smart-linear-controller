@@ -14,6 +14,7 @@
 #include "UI/Frequency.h"
 #include "UI/Meters.h"
 #include "UI/Bottom.h"
+#include "UI/AnalogMeter.h"
 
 #define BANDS_SIZE 15
 
@@ -33,7 +34,8 @@ public:
     void onFrequencyChanged(uint32_t frequency, uint8_t modulation, uint8_t filter, bool txState);
     void onClientConnected(uint8_t macAddress[6]);
     void onClientDisconnected();
-
+    void onMeterUpdated(uint8_t type, uint8_t value);
+    
     void onAmplifierCallback(AmplifierCb callback);
     void onLowPassFilterCallback(LowPassFilterCb callback);
     void onTransmitCallback(TransmitCb callback);
@@ -41,6 +43,8 @@ public:
 
     void onInputSwr(float forwardMv, float reverseMv);
     void onOutputSwr(float forwardMv, float reverseMv);
+
+    void onButtonPressed(int button, bool longPress);
 
 private:
     void updateFrequencyWidget();
@@ -54,6 +58,9 @@ private:
     Frequency _freq;
     Meters _meters;
     Bottom _bottom;
+
+    AnalogMeter _analog;
+
 
     Band _bands[BANDS_SIZE] = {
         {
@@ -103,31 +110,31 @@ private:
             min : 18000,
             max : 18500,
             name : (char *)"17M",
-            lpf : BAND_17_15_12M
+            lpf : BAND_17_15M
         },
         {
             min : 21000,
             max : 21500,
             name : (char *)"15M",
-            lpf : BAND_17_15_12M
+            lpf : BAND_17_15M
         },
         {
             min : 24500,
             max : 25000,
             name : (char *)"12M",
-            lpf : BAND_17_15_12M
+            lpf : BAND_12_10M
         },
         {
             min : 26965,
             max : 27855,
             name : (char *)"11M",
-            lpf : BAND_10_11M
+            lpf : BAND_12_10M
         },
         {
             min : 28000,
             max : 29700,
             name : (char *)"10M",
-            lpf : BAND_10_11M
+            lpf : BAND_12_10M
         },
         {
             min : 50000,

@@ -30,7 +30,7 @@ void UI::clearScreen()
     _tft->setTextDatum(MC_DATUM);
     _tft->loadFont(_smallFont);
     _tft->setTextColor(TFT_WHITE, TFT_BLACK);
-    _tft->drawString("WAITING FOR BLUETOOTH...", SCREEN_WIDTH / 2, SCREEN_WIDTH / 2, 1);
+    _tft->drawString("WAITING FOR BLUETOOTH...", SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, 1);
     _tft->unloadFont();
 }
 

@@ -12,7 +12,6 @@ HardwareLayer hal;
 void setup()
 {
   Serial.begin(115200);
-
   auto cbConnected = std::bind(&Controller::onClientConnected,
                                &ctl,
                                std::placeholders::_1);
@@ -25,9 +24,15 @@ void setup()
   auto cbDisconnected = std::bind(&Controller::onClientDisconnected,
                                   &ctl);
 
+  auto cbMeter = std::bind(&Controller::onMeterUpdated,
+                           &ctl,
+                           std::placeholders::_1,
+                           std::placeholders::_2);
+
   icom.onConnectedCallback(cbConnected);
   icom.onFrequencyCallback(cbFrequency);
   icom.onDisconnectedCallback(cbDisconnected);
+  icom.onMeterCallback(cbMeter);
 
   auto cbInputSwr = std::bind(&Controller::onInputSwr,
                               &ctl,
@@ -37,9 +42,14 @@ void setup()
                                &ctl,
                                std::placeholders::_1,
                                std::placeholders::_2);
+  auto cbButtons = std::bind(&Controller::onButtonPressed,
+                             &ctl,
+                             std::placeholders::_1,
+                             std::placeholders::_2);
 
   hal.onInputSwrCallback(cbInputSwr);
   hal.onOutputSwrCallback(cbOutputSwr);
+  hal.onButtonPressedCallback(cbButtons);
 
   auto cbAmp = std::bind(&HardwareLayer::onAmplifierChanged,
                          &hal,
@@ -65,10 +75,17 @@ void setup()
 
   ctl.begin(&icom);
   hal.begin();
+
+#ifdef M5STACK
+  ledcSetup(BLK_PWM_CHANNEL, 50000, 8);
+  ledcAttachPin(TFT_BL, BLK_PWM_CHANNEL);
+  ledcWrite(BLK_PWM_CHANNEL, 50);
+#endif
 }
 
 void loop(void)
 {
   ctl.loop();
   hal.loop();
+  icom.loop();
 }

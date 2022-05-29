@@ -22,10 +22,15 @@ void ICOM::onDisconnectedCallback(ClientDisconnectedCb callback)
     _clientDisconnectedCallback = callback;
 }
 
+void ICOM::onMeterCallback(MeterCb callback)
+{
+    _meterCallback = callback;
+}
+
 void ICOM::onData(const uint8_t *buffer, size_t size)
 {
 #ifdef DEBUG
-    dumpBuffer((uint8_t *)buffer, size);
+    // dumpBuffer((uint8_t *)buffer, size);
 #endif
     size_t offset = 0;
     for (size_t n = 0; n < size; n++)
@@ -67,6 +72,7 @@ void ICOM::eventCallback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
         }
         break;
     case ESP_SPP_CLOSE_EVT:
+        _radioAddress = 0x00;
         if (_clientDisconnectedCallback)
         {
             _clientDisconnectedCallback();
@@ -120,6 +126,7 @@ void ICOM::handleNextMessage(uint8_t *buffer, uint8_t size)
     // FD - stop byte
 
     bool knownCommand = true;
+    bool updateFrequency = false;
 
     if (size < 5)
     {
@@ -159,6 +166,7 @@ void ICOM::handleNextMessage(uint8_t *buffer, uint8_t size)
                         _frequency += (buffer[9 - i] >> 4) * decMulti[i * 2];
                         _frequency += (buffer[9 - i] & 0x0F) * decMulti[i * 2 + 1];
                     }
+                    updateFrequency = true;
                     break;
                 case CMD_TRANS_MODE:
                 case CMD_READ_MODE:
@@ -170,6 +178,7 @@ void ICOM::handleNextMessage(uint8_t *buffer, uint8_t size)
                     // Serial.println("READ_MODE");
                     _modulation = buffer[5]; // FE FE E0 42 04 <00 01> FD
                     _filter = buffer[6];     // 01 - Wide, 02 - Medium, 03 - Narrow
+                    updateFrequency = true;
                     break;
                 case CMD_TRANSMIT_STATE:
                     // Serial.println("TRANSMIT_STATE");
@@ -179,20 +188,17 @@ void ICOM::handleNextMessage(uint8_t *buffer, uint8_t size)
                         return;
                     }
                     _txState = buffer[7] == 0x01;
+                    updateFrequency = true;
                     break;
-                    /*
                 case CMD_READ_INFO:
-                    switch (buffer[5])
-                    {
-                    case CMD_SUB_S_METER: // S-Meter
-                        char str[2];
-                        sprintf(str, "%02x%02x", buffer[6], buffer[7]);
-                        int value = atoi(str);
-                        DBG("s-meter %d\n", value);
-                        break;
-                    }
+                {
+                    char str[2];
+                    sprintf(str, "%02x%02x", buffer[6], buffer[7]);
+                    int value = atoi(str);
+                    if (_meterCallback)
+                        _meterCallback(buffer[5], value);
                     break;
-                    */
+                }
                 case CMD_COMMAND_OK:
                     // FE FE E0 A4 FB FD
                     break;
@@ -200,7 +206,7 @@ void ICOM::handleNextMessage(uint8_t *buffer, uint8_t size)
                     knownCommand = false;
                 }
 
-                if (knownCommand)
+                if (updateFrequency)
                 {
                     if (_frequencyCallback)
                     {
@@ -250,5 +256,27 @@ bool ICOM::initializeRig()
 
         sendRawRequest(req, sizeof(req));
         return true;
+    }
+}
+
+void ICOM::loop()
+{
+    if (_radioAddress != 0x00 && millis() > _timer1)
+    {
+        _timer1 = millis() + METER_POOL_INTERVAL;
+
+        if (_txState) // while in TX, read POWER and SWR levels
+        {
+            uint8_t req[] = {
+                START_BYTE, START_BYTE, _radioAddress, CONTROLLER_ADDRESS, CMD_READ_INFO, CMD_SUB_POWER, STOP_BYTE,
+                START_BYTE, START_BYTE, _radioAddress, CONTROLLER_ADDRESS, CMD_READ_INFO, CMD_SUB_SWR, STOP_BYTE};
+            sendRawRequest(req, sizeof(req));
+        }
+        else // while in RX, read S-Meter LEVEL
+        {
+            uint8_t req[] = {
+                START_BYTE, START_BYTE, _radioAddress, CONTROLLER_ADDRESS, CMD_READ_INFO, CMD_SUB_S_METER, STOP_BYTE};
+            sendRawRequest(req, sizeof(req));
+        }
     }
 }

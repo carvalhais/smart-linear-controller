@@ -55,6 +55,11 @@ void Controller::onOutputSwr(float forwardMv, float reverseMv)
     _meters.updateOutputSwr(forwardMv, reverseMv);
 }
 
+void Controller::onButtonPressed(int button, bool longPress)
+{
+    DBG("onButtonPressed: Button: %d, Long: %s\n", button, longPress ? "true" : "false");
+}
+
 void Controller::onFrequencyChanged(uint32_t frequency, uint8_t modulation, uint8_t filter, bool txState)
 {
     // DBG("Controller::onFrequencyChanged [Core %d]\n", xPortGetCoreID());
@@ -108,6 +113,20 @@ void Controller::onClientConnected(uint8_t macAddress[6])
         _psuCallback(true);
 }
 
+void Controller::onMeterUpdated(uint8_t type, uint8_t rawValue)
+{
+    switch (type)
+    {
+    case CMD_SUB_S_METER:
+        uint8_t value = rawValue > 120 ? 90 + map(rawValue, 121, 241, 0, 60) : map(rawValue, 0, 120, 0, 90);
+        value = value / 150.0 * 100;
+        break;
+    }
+
+    //_analog.update(value);
+    // DBG("Controller::onMeterUpdate: Type: %d, Raw: %d, Value: %d \n", type, rawValue, value);
+}
+
 void Controller::start()
 {
     DBG("Controller::start() [Core %d]\n", xPortGetCoreID());
@@ -125,12 +144,14 @@ void Controller::start()
         // initialize the bargraphs (input and output meters)
         _meters.begin(1, 61, SCREEN_WIDTH - 2, 119, &_tft, Tahoma9Sharp, EurostileNextProNr18);
 
-        //"Digital" meters at the bottom
+        // "Digital" meters at the bottom
         _bottom.begin(1, 180, SCREEN_WIDTH - 2, 40, &_tft, Tahoma9Sharp, EurostileNextProNr18);
-        _bottom.updateVolts(24);
+        _bottom.updateVolts(53);
         _bottom.updateAmperes(0.1);
         _bottom.updateTemperature(56);
         _bottom.updateAntenna((char *)"ANT A");
+
+        //_analog.begin(&_tft, 2, 100, 316, 118);
 
         _started = true;
     }
@@ -163,6 +184,7 @@ void Controller::loop()
     {
         _freq.loop();
         _meters.loop();
+        //_analog.loop();
     }
 }
 
@@ -171,8 +193,10 @@ void Controller::begin(ICOM *rig)
     DBG("Controller::begin [Core %d]\n", xPortGetCoreID());
     _rig = rig;
     _tft.init();
-
-    _tft.setRotation(1); //3
+#ifdef M5STACK
+    _tft.invertDisplay(true);
+#endif
+    _tft.setRotation(1); // 3
     _tft.fillScreen(TFT_BLACK);
 
     _ui.begin(&_tft, EurostileNextProWide13);

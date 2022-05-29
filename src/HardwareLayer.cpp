@@ -16,6 +16,7 @@ void HardwareLayer::onOutputSwrCallback(SwrCb cb)
 
 void HardwareLayer::onAmplifierChanged(Amplifier amp)
 {
+    bool ampReady = true;
     const char *desc;
     switch (amp)
     {
@@ -26,74 +27,103 @@ void HardwareLayer::onAmplifierChanged(Amplifier amp)
         desc = "VHF";
         break;
     case AMP_UHF:
+        ampReady = false;
         desc = "UHF";
         break;
     default:
+        ampReady = false;
         desc = "Unknown";
         break;
     }
     _amp = amp;
-    digitalWrite(PIN_HF_VHF_AMP, amp == AMP_HF ? 1 : 0);
-    DBG("Amplifier changed: %s\n", desc);
+
+    if (ampReady)
+    {
+        digitalWrite(PIN_HF_VHF_AMP, amp == AMP_HF ? HIGH : LOW);
+        DBG("Amplifier changed: %s\n", desc);
+    }
+    else
+    {
+        DBG("Amplifier not ready: %s\n", desc);
+    }
+}
+
+void HardwareLayer::onButtonPressedCallback(ButtonPressedCb cb)
+{
+    _buttonPressed = cb;
 }
 
 void HardwareLayer::onLowPassFilterChanged(LowPassFilter lpf)
 {
-
-    if (lpf != _lpf && _lpfPin != 0)
-    {
-        digitalWrite(_lpfPin, 0);
-    }
-
+    bool knownLpf = true;
     const char *desc;
+    uint8_t lpfA = HIGH;
+    uint8_t lpfB = HIGH;
+    uint8_t lpfC = HIGH;
+
     switch (lpf)
     {
     case BAND_160M:
         desc = "160M";
-        _lpfPin = PIN_LPF_160M;
+        lpfA = LOW, lpfB = LOW, lpfC = LOW;
         break;
     case BAND_80M:
         desc = "80M";
-        _lpfPin = PIN_LPF_80M;
+        lpfA = HIGH, lpfB = LOW, lpfC = LOW;
         break;
     case BAND_60_40M:
         desc = "60/40M";
-        _lpfPin = PIN_LPF_60_40M;
+        lpfA = LOW, lpfB = HIGH, lpfC = LOW;
         break;
     case BAND_30_20M:
         desc = "30/20M";
-        _lpfPin = PIN_LPF_30_20M;
+        lpfA = HIGH, lpfB = HIGH, lpfC = LOW;
         break;
-    case BAND_17_15_12M:
-        desc = "17/15/12M";
-        _lpfPin = PIN_LPF_17_15_12M;
+    case BAND_17_15M:
+        desc = "17/15M";
+        lpfA = LOW, lpfB = LOW, lpfC = HIGH;
         break;
-    case BAND_10_11M:
-        desc = "10/11M";
-        _lpfPin = PIN_LPF_10_11M;
+    case BAND_12_10M:
+        desc = "12/10M";
+        lpfA = HIGH, lpfB = LOW, lpfC = HIGH;
         break;
     case BAND_6M:
         desc = "6M";
-        _lpfPin = PIN_LPF_6M;
+        lpfA = LOW, lpfB = HIGH, lpfC = HIGH;
         break;
     default:
         desc = "Other";
-        _lpfPin = 0;
+        knownLpf = false;
         break;
     }
 
     _lpf = lpf;
-    if (_lpfPin > 0)
+    if (knownLpf)
     {
-        digitalWrite(_lpfPin, 1);
+        DBG("LPF changed: %s: %s %s %s\n", desc, lpfA ? "H" : "L", lpfB ? "H" : "L", lpfC ? "H" : "L");
+        digitalWrite(PIN_LPF_A, lpfA);
+        digitalWrite(PIN_LPF_B, lpfB);
+        digitalWrite(PIN_LPF_C, lpfC);
     }
-    DBG("LPF changed: %s\n", desc);
+    else
+    {
+        DBG("Unknown LPF: %s\n", desc);
+    }
 }
 
 void HardwareLayer::onTransmitChanged(bool state)
 {
-    uint8_t pin = _amp == AMP_VHF ? PIN_TX_VHF : PIN_TX_HF;
-    digitalWrite(pin, state ? 0 : 1);
+    if (_amp == AMP_VHF)
+    {
+        digitalWrite(PIN_TX_VHF, state);
+        _vhfRelay.toogle(state);
+    }
+    else
+    {
+        digitalWrite(PIN_TX_HF, state);
+    }
+
+    DBG("TX %s: %s\n", _amp == AMP_HF ? "HF" : "VHF", state ? "ON" : "OFF");
 }
 
 float HardwareLayer::readVpp(uint8_t pin)
@@ -109,16 +139,20 @@ float HardwareLayer::readVpp(uint8_t pin)
 void HardwareLayer::begin()
 {
     pinMode(PIN_HF_VHF_AMP, OUTPUT);
-    digitalWrite(PIN_HF_VHF_AMP, 0);
-
     pinMode(PIN_TX_VHF, OUTPUT);
-    digitalWrite(PIN_TX_VHF, 1);
-
     pinMode(PIN_TX_HF, OUTPUT);
-    digitalWrite(PIN_TX_HF, 1);
+    pinMode(PIN_LPF_A, OUTPUT);
+    pinMode(PIN_LPF_B, OUTPUT);
+    pinMode(PIN_LPF_C, OUTPUT);
 
-    pinMode(PIN_PSU_CONTROL, OUTPUT);
-    digitalWrite(PIN_PSU_CONTROL, 1);
+    // pinMode(PIN_PSU_CONTROL, OUTPUT);
+    // digitalWrite(PIN_PSU_CONTROL, 1);
+
+    _vhfRelay.begin(PIN_PULSE_TX, PIN_PULSE_RX);
+
+    _buttonA.begin(BUTTON_A, _buttonPressed);
+    _buttonB.begin(BUTTON_B, _buttonPressed);
+    _buttonC.begin(BUTTON_C, _buttonPressed);
 }
 
 void HardwareLayer::loop()
@@ -129,10 +163,18 @@ void HardwareLayer::loop()
         _lastInputSwr = readPowerSwr(PIN_INPUT_SWR_FWD, PIN_INPUT_SWR_REV, _inputSwrCallback, _lastInputSwr);
         _lastOutputSwr = readPowerSwr(PIN_OUTPUT_SWR_FWD, PIN_OUTPUT_SWR_REV, _outputSwrCallback, _lastOutputSwr);
     }
+
+    _buttonA.loop();
+    _buttonB.loop();
+    _buttonC.loop();
+
+    _vhfRelay.loop();
 }
 
 float HardwareLayer::readPowerSwr(uint8_t pinForward, uint8_t pinReverse, SwrCb callback, float lastRead)
 {
+    return 0;
+    /*
     float fwdMv = readVpp(pinForward);
     if (fwdMv <= 0.3) // ~1W
         fwdMv = 0;
@@ -150,10 +192,11 @@ float HardwareLayer::readPowerSwr(uint8_t pinForward, uint8_t pinReverse, SwrCb 
     }
 
     return fwdMv;
+    */
 }
 
 void HardwareLayer::onPowerSupplyChanged(bool state)
 {
     DBG("PSU: %s\n", state ? "ON" : "OFF");
-    digitalWrite(PIN_PSU_CONTROL, state ? 0 : 1);
+    // digitalWrite(PIN_PSU_CONTROL, state ? 0 : 1);
 }
