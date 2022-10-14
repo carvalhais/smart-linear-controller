@@ -156,7 +156,6 @@ void HardwareLayer::loop()
 
     _vhfRelay.loop();
 
-
 #ifdef WT32SC01
     if (_diag.mainExpander)
     {
