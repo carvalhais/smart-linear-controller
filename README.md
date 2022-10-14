@@ -2,7 +2,7 @@
 
 The idea behind this project is to create a "Smart" Linear Amplifier Controller to allow an Amateur "Ham" Transceiver to control an external amplifier with minimum or no manual intervention, this includes but not limited to: amplifier selection (HF/VHF), band bass filter selection, TX/RX switching.
 
-DISCLAIMER 1: This is a work in progress and wasn't tested in real world.
+DISCLAIMER 1: This is a work in progress with very limited test in real world.
 
 DISCLAIMER 2: I'm not a C/C++ programmer. Although I tried to keep the code well organized for easy maintenance, probably there are tons of errors and bad practices. This is my first MCU based project and was used as a learning lab.
 
@@ -15,13 +15,15 @@ Initially this project is aimed at QRP transceivers with single RF port, and the
 So far the following features are "working" (at least in the protoboard)
 
  - ICOM CI-V communication (frequency, mode and TX/RX status (PTT))
- - 320x240 TFT display using the excellent [TFT_eSPI](https://github.com/Bodmer/TFT_eSPI) Library (fast updates, smooth font rendering)
- - POWER/SWR bargraphs with peak hold
+ - 480x320 TFT display using the excellent [TFT_eSPI](https://github.com/Bodmer/TFT_eSPI) Library (fast updates, smooth font rendering)
+ - Temperature and FAN sensor/controller
+ - Input and Output RF sensors
+ - CAN BUS Power Supply support/control (Eltek and Huawei PSUs)
  - Amp selection (VHF/UHF), TX/RX, and LPF selection GPIOs
 
 ## User Interface
 
-Most of the efforts until now were put into the user interface. Tons on nice DIY amplifiers borning nowadays that are still based on 70's 16x4 dot matrix displays, mostly because User Interface and graphics are a time consuming task and are usually left aside to focus on the RF stuff. 
+Tons on nice DIY amplifiers borning nowadays are still based on 70's 16x4 dot matrix displays, mostly because User Interface and graphics are a time consuming task and are usually left aside to focus on the RF stuff. 
 
 The goal of this project is that it could be used as a platform for any kind on amplifier and you could focus on the electronics and easily adapt this code to suit your needs. 
 
@@ -31,7 +33,7 @@ The ESP32 SPI is capable of doing smooth font rendering (anti-aliased) and fast 
 
 ## Hardware used
 
-This project uses the ESP32 processor and the ILI9341 TFT display.
+This project uses the ESP32 processor. The current [PlatformIO.ini](platformio.ini) settings works with the WT32-SC01 LCD/Touch/ESP32 board available on the AliExpress. Other boards can be easily added as new env section.
 
 ## Development IDE
 
