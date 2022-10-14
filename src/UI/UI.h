@@ -4,23 +4,61 @@
 #include <Arduino.h>
 #include <TFT_eSPI.h>
 #include "Defines.h"
+#include "Types.h"
+#include <FT62XXTouchScreen.h>
+#include "UI/PowerSupplyScreen.h"
+#include "UI/StandbyScreen.h"
+#include "UI/MainScreen.h"
+#include "UI/DiagScreen.h"
+#include "Fonts/Tahoma9Sharp.h"
+#include "Fonts/EurostileNextProWide13.h"
+#include "Fonts/EurostileNextProNr18.h"
+#include "Fonts/EurostileNextProSemiBold32.h"
 
 class UI
 {
 public:
     UI();
-    void begin(TFT_eSPI *tft, const uint8_t smallFont[]);
+    void begin();
+    void loop(bool started);
     void end();
+
+    void previousScreen();
+    void nextScreen();
+    void loadScreen(Screens screen);
+    void updatePowerSupply(PowerSupplyMode mode, int intTemp, int outTemp, float current, float outVoltage, int inputVoltage);
+    void updateOutputPower(float forwardWatts, float reverseWatts);
+    void updateGain(float gain);
+    void updateInputPower(float forwardWatts);
+    void updateDiagnostics(Diag diag);
+    void updateTemperature(float temperature);
+    void updateFanSpeed(float perc);
+    void frequencyChanged(uint32_t frequency, uint8_t modulation, uint8_t filter, bool txState, char *band, bool txEnabled);
+    TouchCmd touch(TouchPoint tp);
+    void updateBypass(bool state);
+    void unloadScreen(Screens screen);
     void drawHeader();
-    void clearScreen();
+
+    MainScreen _main;
+    PowerSupplyScreen _psu;
+    StandbyScreen _standby;
+    DiagScreen _diag;
 
 protected:
+private:
+    TFT_eSPI _tft = TFT_eSPI();
+
+    Screens _activeScreen = Screens::STANDBY;
+    ScreenBase *_screenPtr;
+    uint8_t *_microFont;
     uint8_t *_smallFont;
     uint8_t *_mediumFont;
-    TFT_eSPI *_tft;
-    std::unique_ptr<TFT_eSprite> _spr;
-private:
-    
+    uint8_t *_largeFont;
+
+    uint16_t _x = OFFSET_LEFT + 1;
+    uint16_t _y = OFFSET_TOP + HEADER_HEIGHT + 1;
+    uint16_t _w = SCREEN_WIDTH - 2;
+    uint16_t _h = SCREEN_HEIGHT - HEADER_HEIGHT - 2;
 };
 
 #endif

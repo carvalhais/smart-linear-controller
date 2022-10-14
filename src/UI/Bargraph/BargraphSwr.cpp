@@ -38,6 +38,5 @@ void BargraphSwr::drawScale()
   drawInfiniteSymbol(1);
   BargraphBase::drawScale();
   _spr->unloadFont();
-  setValue(0.001);
   setValue(0);
 }

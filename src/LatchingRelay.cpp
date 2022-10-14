@@ -4,33 +4,36 @@ LatchingRelay::LatchingRelay()
 {
 }
 
-void LatchingRelay::begin(int pinLow, int pinHigh)
+void LatchingRelay::begin(PCF8575 *io, int pinTx, int pinRx)
 {
-    _pinLow = pinLow;
-    _pinHigh = pinHigh;
-    pinMode(_pinLow, OUTPUT);
-    pinMode(_pinHigh, OUTPUT);
+    _pinTx = pinTx;
+    _pinRx = pinRx;
+    _io = io;
+    _started = true;
 }
 
 void LatchingRelay::toogle(bool state)
 {
-    digitalWrite(_pinLow, 0);
-    digitalWrite(_pinHigh, 0);
-
-    DBG("LatchingRelay: Turning coil ON: PIN %s\n", state ? "HIGH" : "LOW");
-
-    digitalWrite(state ? _pinHigh : _pinLow, 1);
+    if (!_started)
+        return;
+    _io->write(_pinTx, LOW);
+    _io->write(_pinRx, LOW);
+    uint8_t pin = state ? _pinTx : _pinRx;
+    //DBG("LatchingRelay: Turning coil ON: PIN %d\n", pin);
+    _io->write(pin, HIGH);
     _timer1 = millis() + _pulseWidth;
     _ongoing = true;
 }
 
 void LatchingRelay::loop()
 {
+    if (!_started)
+        return;
     if (_ongoing && millis() > _timer1)
     {
         _ongoing = false;
-        digitalWrite(_pinLow, 0);
-        digitalWrite(_pinHigh, 0);
-        DBG("LatchingRelay: Turning coils OFF\n");
+        _io->write(_pinTx, LOW);
+        _io->write(_pinRx, LOW);
+        //DBG("LatchingRelay: Turning coils OFF\n");
     }
 }

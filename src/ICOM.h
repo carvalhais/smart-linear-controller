@@ -22,15 +22,15 @@
 
 #define CMD_READ_INFO 0x15   // Read varios meters (Signal, Power)
 #define CMD_SUB_S_METER 0x02 // S-Meter reading
-#define CMD_SUB_POWER 0x11 // POWER reading
-#define CMD_SUB_SWR 0x12 // S-Meter reading
+#define CMD_SUB_POWER 0x11   // POWER reading
+#define CMD_SUB_SWR 0x12     // S-Meter reading
 
 #define CMD_TRANSMIT_STATE 0x24 // Read TX Mode (On/Off)
 #define CMD_COMMAND_OK 0xFB     // Last command was accepted
 
 #define BT_BUFFER_SIZE 12
 
-#define METER_POOL_INTERVAL 1000
+#define METER_POOL_INTERVAL 500
 
 // #define IF_PASSBAND_WIDTH_WIDE 0x01
 // #define IF_PASSBAND_WIDTH_MEDIUM 0x02
@@ -43,13 +43,13 @@
 // #define MODE_TYPE_RTTY 0x04
 // #define MODE_TYPE_FM 0x05
 
-typedef std::function<void(uint32_t frequency, uint8_t modulation, uint8_t filter, bool txState)> FrequencyCb;
-typedef std::function<void(uint8_t type, uint8_t value)> MeterCb;
-typedef std::function<void(uint8_t[6])> ClientConnectedCb;
-typedef std::function<void()> ClientDisconnectedCb;
-
 class ICOM
 {
+    typedef std::function<void(uint32_t frequency, uint8_t modulation, uint8_t filter, bool txState)> FrequencyCb;
+    typedef std::function<void(uint8_t type, uint8_t value)> MeterCb;
+    typedef std::function<void(uint8_t[6])> ClientConnectedCb;
+    typedef std::function<void()> ClientDisconnectedCb;
+
 public:
     ICOM();
     void begin(String bluetoothName);
@@ -69,6 +69,7 @@ private:
     void sendRawRequest(uint8_t request[], uint8_t size);
     void handleNextMessage(uint8_t *buffer, uint8_t size);
     void processCatMessages();
+    static void taskRunner(void *pvParameters);
     FrequencyCb _frequencyCallback;
     MeterCb _meterCallback;
     ClientConnectedCb _clientConnectedCallback;
@@ -82,7 +83,8 @@ private:
     uint8_t _filter = 0;
     uint16_t _readTimeout = 100; //*100ms
     bool _txState = false;
-    timer_t _timer1;
+    timer_t _timerPooling;
+    
 };
 
 #endif

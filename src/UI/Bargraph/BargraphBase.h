@@ -10,7 +10,7 @@ class BargraphBase
 public:
 	BargraphBase();
 	virtual ~BargraphBase();
-	void begin(uint32_t x, uint32_t y, uint32_t w, uint32_t h, TFT_eSPI *tft, const uint8_t smallFont[], const uint8_t mediumFont[]);
+	void begin(uint32_t x, uint32_t y, uint32_t w, uint32_t h, TFT_eSPI *tft, const uint8_t smallFont[], const uint8_t mediumFont[], const char *header);
 	void end();
 	void setColor(uint32_t on, uint32_t off, uint32_t font);
 	void loop();
@@ -20,7 +20,8 @@ protected:
 	void drawScaleItem(float value, char *label);
 	void drawInfiniteSymbol(float value);
 	void drawBar(uint8_t position, uint32_t color);
-	void setValueLabel(float value, char *valueText);
+	void setValueLabel(float value, String valueText);
+	void drawHeader();
 
 	uint8_t *_smallFont;
 	uint8_t *_mediumFont;
@@ -36,13 +37,16 @@ protected:
 	uint32_t _laneX;
 	uint32_t _laneY;
 
+	uint8_t _headerHeight = 14;
 	uint8_t _paddingLeft = 6;
 	uint8_t _paddingTop = 5;
 	uint8_t _paddingRight = 40;
 	uint8_t _paddingBottom = 16;
 
 	float _value;
-	float _lastValue;
+	String _label;
+
+	float _lastValue = -1; // do not change, unitialized
 	float _peakValue;
 	uint8_t _lastValuePosition;
 	uint8_t _lastPeakPosition;
@@ -50,13 +54,13 @@ protected:
 	uint8_t _peakSpeed;
 	uint8_t _numBars;
 	uint8_t _barWidth;
-	char *_valueText;
+	char *_header;
+	time_t _nextRefresh;
 	TFT_eSPI *_tft;
-	std::unique_ptr<TFT_eSprite> _spr;
+	TFT_eSprite *_spr;
 
 private:
 	void drawLabelValue();
-	
 };
 
 #endif

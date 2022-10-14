@@ -9,7 +9,7 @@ void AnalogMeter::begin(TFT_eSPI *tft, uint16_t x, uint16_t y, uint16_t width, u
     _y = y;
     _faceWidth = width;
     _faceHeight = height;
-    _spr = std::unique_ptr<TFT_eSprite>(new TFT_eSprite(tft));
+    _spr = new TFT_eSprite(tft);
     _spr->createSprite(_faceWidth, _faceHeight);
     drawScale(_minAngle, _maxAngle);
     _spr->pushSprite(_x, _y);

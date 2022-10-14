@@ -59,6 +59,25 @@ void ICOM::begin(String bluetoothName)
 
     auto callbackData = std::bind(&ICOM::onData, this, std::placeholders::_1, std::placeholders::_2);
     bt.onData(callbackData);
+
+    xTaskCreatePinnedToCore(
+        this->taskRunner, /* Function to implement the task */
+        "ICOMPool",       /* Name of the task */
+        10000,            /* Stack size in words */
+        this,             /* Task input parameter */
+        0,                /* Priority of the task */
+        NULL,             /* Task handle. */
+        0);               /* Core where the task should run */
+}
+
+void ICOM::taskRunner(void *pvParameters)
+{
+    ICOM *icom = (ICOM *)pvParameters;
+    while (1)
+    {
+        icom->loop();
+        vTaskDelay(10);
+    }
 }
 
 void ICOM::eventCallback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
@@ -83,10 +102,18 @@ void ICOM::eventCallback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
         // Serial.printf("BT Data Received: %d\n", param->data_ind.len);
         break;
     case ESP_SPP_WRITE_EVT: // Write complete
-
+        break;
+    case ESP_SPP_CONG_EVT: // Write complete
+        DBG("ICOM: Bluetooth congestion detected\n");
+        break;
+    case ESP_SPP_INIT_EVT:
+        DBG("ICOM: Bluetooth started\n");
+        break;
+    case ESP_SPP_START_EVT:
+        DBG("ICOM: Bluetooth Serial started\n");
         break;
     default:
-        DBG("BT Event: %d\n", event);
+        DBG("ICOM: Uknown event received: %d\n", event);
     }
 }
 
@@ -125,12 +152,15 @@ void ICOM::handleNextMessage(uint8_t *buffer, uint8_t size)
     // <data>
     // FD - stop byte
 
+    // postpone next pooling, user is interacting with the rig panel
+    _timerPooling = millis() + METER_POOL_INTERVAL;
+
     bool knownCommand = true;
     bool updateFrequency = false;
 
     if (size < 5)
     {
-        DBG("Invalid command size. Expected: %d, Got: %d\n", 5, size);
+        DBG("ICOM: Invalid command size. Expected: %d, Got: %d\n", 5, size);
         return;
     }
 
@@ -141,7 +171,7 @@ void ICOM::handleNextMessage(uint8_t *buffer, uint8_t size)
             if (_radioAddress == 0x00 && buffer[3] != 0x00)
             {
                 _radioAddress = buffer[3];
-                DBG("Got radio address: %2X\n", _radioAddress);
+                DBG("ICOM: Got radio address: %2X\n", _radioAddress);
             }
 
             // DBG("Radio address: %2X, CMD: %2X\n", buffer[3], buffer[4]);
@@ -155,7 +185,7 @@ void ICOM::handleNextMessage(uint8_t *buffer, uint8_t size)
                     // Serial.println("READ_FREQ");
                     if (size < 10) // incomplete command
                     {
-                        DBG("Invalid command size. Command: READ_FREQ, Expected: %d, Got: %d\n", 10, size);
+                        DBG("ICOM: Invalid command size. Command: READ_FREQ, Expected: %d, Got: %d\n", 10, size);
                         return;
                     }
                     _frequency = 0;
@@ -172,7 +202,7 @@ void ICOM::handleNextMessage(uint8_t *buffer, uint8_t size)
                 case CMD_READ_MODE:
                     if (size < 7) // incomplete command
                     {
-                        DBG("Invalid command size. Command: READ_MODE, Expected: %d, Got: %d\n", 7, size);
+                        DBG("ICOM: Invalid command size. Command: READ_MODE, Expected: %d, Got: %d\n", 7, size);
                         return;
                     }
                     // Serial.println("READ_MODE");
@@ -184,7 +214,7 @@ void ICOM::handleNextMessage(uint8_t *buffer, uint8_t size)
                     // Serial.println("TRANSMIT_STATE");
                     if (size < 8) // incomplete command
                     {
-                        DBG("Invalid command size. Command: TRANSMIT_STATE, Expected: %d, Got: %d\n", 8, size);
+                        DBG("ICOM: Invalid command size. Command: TRANSMIT_STATE, Expected: %d, Got: %d\n", 8, size);
                         return;
                     }
                     _txState = buffer[7] == 0x01;
@@ -223,7 +253,7 @@ void ICOM::handleNextMessage(uint8_t *buffer, uint8_t size)
 #ifdef DEBUG
         if (!knownCommand)
         {
-            DBG("Unknown command: \n");
+            DBG("ICOM: Unknown command: \n");
             dumpBuffer(buffer, size);
         }
 #endif
@@ -232,7 +262,8 @@ void ICOM::handleNextMessage(uint8_t *buffer, uint8_t size)
 
 bool ICOM::initializeRig()
 {
-    DBG(">> CMD_READ_FREQ\n");
+    delay(100);
+    DBG("ICOM: >> CMD_READ_FREQ\n");
     // First request is sent to the broadcast address (0x00), once the radioAddress is received, next request are sent
     sendCodeRequest(CMD_READ_FREQ);
     uint8_t timeout = _readtimeout;
@@ -248,9 +279,9 @@ bool ICOM::initializeRig()
     }
     else
     {
-        DBG(">> CMD_READ_MODE + CMD_TRANSMIT_STATE\n");
+        DBG("ICOM: >> CMD_READ_MODE + CMD_TRANSMIT_STATE\n");
         uint8_t req[] = {
-            START_BYTE, START_BYTE, _radioAddress, CONTROLLER_ADDRESS, CMD_READ_MODE, STOP_BYTE,                       // Read currenet mode
+            START_BYTE, START_BYTE, _radioAddress, CONTROLLER_ADDRESS, CMD_READ_MODE, STOP_BYTE,                       // Read current mode
             START_BYTE, START_BYTE, _radioAddress, CONTROLLER_ADDRESS, CMD_TRANSMIT_STATE, 0x00, 0x00, 0x01, STOP_BYTE // Subscribe for TX state changes
         };
 
@@ -261,9 +292,10 @@ bool ICOM::initializeRig()
 
 void ICOM::loop()
 {
-    if (_radioAddress != 0x00 && millis() > _timer1)
+    if (_radioAddress != 0x00 && millis() > _timerPooling)
     {
-        _timer1 = millis() + METER_POOL_INTERVAL;
+        //DBG("ICOM: Pooling [Core %d]\n", xPortGetCoreID());
+        _timerPooling = millis() + METER_POOL_INTERVAL;
 
         if (_txState) // while in TX, read POWER and SWR levels
         {
