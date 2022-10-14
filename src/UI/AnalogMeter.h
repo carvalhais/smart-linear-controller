@@ -18,7 +18,7 @@ private:
     void eraseNeedle(int sdeg);
 
     TFT_eSPI *_tft;
-    std::unique_ptr<TFT_eSprite> _spr;
+    TFT_eSprite *_spr;
 
     int _x;
     int _y;

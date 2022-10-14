@@ -1,5 +1,4 @@
-#ifndef TYPES_H
-#define TYPES_H
+#pragma once
 
 #include <Arduino.h>
 
@@ -25,12 +24,55 @@ enum Amplifier
     AMP_UHF
 };
 
+enum Protection
+{
+    PROTECTION_NONE,
+    SWR,
+    GAIN,
+    TEMPERATURE,
+    CURRENT
+};
+
+enum TouchCmd {
+    TOUCH_NONE,
+    MAIN_PSU,
+    MAIN_BYPASS,
+    MAIN_STANDBY,
+    PSU_BACK
+};
+
+struct TouchRegion {
+    uint16_t x;
+    uint16_t y;
+    uint16_t w;
+    uint16_t h;
+    TouchCmd cmd;
+};
+
 struct Band
 {
     uint32_t min;
     uint32_t max;
     char *name;
     LowPassFilter lpf;
+    float interceptFwd;
+    float interceptRev;
+    float inputPowerFactor;
 };
 
-#endif
+enum Screens
+{
+    STANDBY,
+    DIAG,
+    MAIN,
+    PSU
+};
+
+struct Diag
+{
+    bool mainAdc;
+    bool mainExpander;
+    bool rfAdc;
+    bool temperature;
+    float temperatureCelsius;
+};

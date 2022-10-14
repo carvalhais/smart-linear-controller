@@ -5,7 +5,7 @@ BargraphBase::BargraphBase() {}
 
 BargraphBase::~BargraphBase() {}
 
-void BargraphBase::begin(uint32_t x, uint32_t y, uint32_t w, uint32_t h, TFT_eSPI *tft, const uint8_t smallFont[], const uint8_t mediumFont[])
+void BargraphBase::begin(uint32_t x, uint32_t y, uint32_t w, uint32_t h, TFT_eSPI *tft, const uint8_t smallFont[], const uint8_t mediumFont[], const char *header)
 {
   _x = x;
   _y = y;
@@ -13,17 +13,19 @@ void BargraphBase::begin(uint32_t x, uint32_t y, uint32_t w, uint32_t h, TFT_eSP
   _h = h;
 
   _laneX = _paddingLeft;
-  _laneY = _paddingTop;
+  _laneY = _paddingTop + _headerHeight + 2;
+
   _laneW = _w - _laneX - _paddingRight;
   _laneH = _h - _laneY - _paddingBottom;
 
   _barColorOn = BARGRAPH_COLOR_ON;
   _barColorOff = BARGRAPH_COLOR_OFF;
   _fontColor = BARGRAPH_COLOR_FONT;
-  _value = 0;
-  _lastValue = 0;
+  _value = 1.1f;
+  _lastValue = 1.1f; // intentionally invalid value, always between 0.0 and 1.0
   _lastValuePosition = 0;
   _lastPeakPosition = 0;
+  _header = (char *)header;
 
   _smallFont = (uint8_t *)smallFont;
   _mediumFont = (uint8_t *)mediumFont;
@@ -32,13 +34,17 @@ void BargraphBase::begin(uint32_t x, uint32_t y, uint32_t w, uint32_t h, TFT_eSP
   _numBars = _laneW / (_laneW / divider);
   _barWidth = _laneW / _numBars;
 
-  //DBG("_w: %d, _laneW: %d, _numBars: %d, _barWidth: %d\n", _w, _laneW, _numBars, _barWidth);
+  _laneW = _numBars * _barWidth; // adjust the lane according to the rounded values;
 
+  // DBG("_w: %d, _laneW: %d, _numBars: %d, _barWidth: %d\n", _w, _laneW, _numBars, _barWidth);
   _tft = tft;
-  _spr = std::unique_ptr<TFT_eSprite>(new TFT_eSprite(tft));
 
-  _spr->createSprite(_w, _h);
-  _spr->drawRoundRect(0, 0, _w, _h, 2, TFT_DARKGREY);
+  _tft->drawRoundRect(_x, _y, _w, _h, 2, TFT_DARKGREY);
+  drawHeader();
+
+  _spr = new TFT_eSprite(tft);
+  _spr->setColorDepth(8);
+  _spr->createSprite(_w - 4, _h - _laneY - 2);
 }
 
 void BargraphBase::end()
@@ -47,6 +53,8 @@ void BargraphBase::end()
   {
     _spr->unloadFont();
     _spr->deleteSprite();
+    delete _spr;
+    _spr = nullptr;
   }
 }
 
@@ -57,16 +65,16 @@ void BargraphBase::setColor(uint32_t on, uint32_t off, uint32_t font)
   _fontColor = font;
 }
 
-void BargraphBase::setValueLabel(float value, char *valueText)
+void BargraphBase::setValueLabel(float value, String valueText)
 {
-  if (value < 0.0)
+  if (value < 0.0f)
     value = 0;
-  if (value > 1.0)
+  if (value > 1.0f)
     value = 1;
-  _valueText = valueText;
+  _label = valueText;
   long temp = (long)(value * 1000L);
   _value = (float)temp / 1000.0;
-  loop();
+  // DBG("BargraphBase::setValueLabel: %s [Core %d]\n", valueText, xPortGetCoreID());
 }
 
 void BargraphBase::loop()
@@ -75,19 +83,16 @@ void BargraphBase::loop()
     return;
 
   bool updateScreen = false;
-
   if (_value != _lastValue)
   {
     updateScreen = true;
     uint8_t start = 0;
     float currentRelativeValue = _laneW * (_value);
 
-    //determine the current position, which bar should be turned on
+    // determine the current position, which bar should be turned on
     uint8_t currentPosition = floor(currentRelativeValue / (float)_barWidth);
 
-    //Serial.printf("Value %1.2f, Position: %d\n", _value, currentPosition);
-
-    //if the current position is greater than the last position, we need to turn some bars ON
+    // if the current position is greater than the last position, we need to turn some bars ON
     if (currentPosition > _lastValuePosition && currentPosition > 0)
     {
       start = _lastValuePosition > 0 ? _lastValuePosition : 1;
@@ -97,7 +102,7 @@ void BargraphBase::loop()
       }
     }
 
-    //if the current position is lower than the last position, we need to turn some bars OFF
+    // if the current position is lower than the last position, we need to turn some bars OFF
     if (currentPosition < _lastValuePosition)
     {
       start = currentPosition > 0 ? currentPosition : 1;
@@ -106,6 +111,13 @@ void BargraphBase::loop()
         drawBar(i, _barColorOff);
       }
     }
+
+    if (_value > _lastValue || _value == 0.0f || millis() > _nextRefresh)
+    {
+      drawLabelValue();
+      _nextRefresh = millis() + 500;
+    }
+
     _lastValue = _value;
     _lastValuePosition = currentPosition;
     if (_value > _peakValue)
@@ -115,64 +127,63 @@ void BargraphBase::loop()
       if (_lastPeakPosition <= currentPosition)
         _lastPeakPosition = 0;
     }
-    drawLabelValue();
   }
 
   if (_peakValue > _value || _lastPeakPosition > 0)
   {
     updateScreen = true;
-    uint8_t barPosition = 0;
-    if (_peakValue > 0)
+    uint8_t peakPosition = 0;
+    if (_peakValue > 0.0f)
     {
       float peakRelativeValue = _laneW * (_peakValue);
-      barPosition = floor(peakRelativeValue / (float)_barWidth);
+      peakPosition = floor(peakRelativeValue / (float)_barWidth);
     }
 
-    if (_lastPeakPosition != barPosition)
+    if (_lastPeakPosition != peakPosition)
     {
       if (_lastPeakPosition > 0)
       {
         drawBar(_lastPeakPosition, _barColorOff);
       }
-      if (barPosition > 0)
+      if (peakPosition > 0)
       {
-        drawBar(barPosition, _barColorOn);
+        drawBar(peakPosition, _barColorOn);
       }
     }
-    _lastPeakPosition = barPosition;
-    _peakValue = _peakValue - (0.02 * _peakIncrement);
-
+    _lastPeakPosition = peakPosition;
+    _peakValue -= (0.005 * _peakIncrement);
     if (_peakValue < _value)
     {
       _peakValue = _value;
     }
     _peakIncrement++;
   }
-
   if (updateScreen)
   {
-    _spr->pushSprite(_x, _y);
+    _spr->pushSprite(_x + 2, _y + _laneY);
   }
 }
 
 void BargraphBase::drawLabelValue()
 {
-  uint16_t y = (_h / 2) - 11;
-  _spr->fillRect(_w - _paddingRight + 3, y, 32, 16, TFT_BLACK);
+  // DBG("Bargraph: Text: %s (%d) [Core %d]\n", _valueText, _valueText.length(), xPortGetCoreID());
+  uint16_t y = 0;
+  uint16_t x = _laneX + _laneW + 2;
+  _spr->fillRect(x, y, _w - x - 2, 22, TFT_BLACK);
   _spr->loadFont(_mediumFont);
-  String str = String(_valueText);
-  uint16_t x = _w - 2;
-  for (uint8_t i = str.length(); i > 0; i--)
+  _spr->setTextColor(TFT_WHITE, TFT_BLACK);
+  x = _w - 2;
+  for (uint8_t i = _label.length(); i > 0; i--)
   {
-    if (str.substring(i - 1, i) == ".")
+    if (_label.substring(i - 1, i) == ".")
     {
       x -= 5;
-      _spr->drawCentreString(str.substring(i - 1, i), x - 2, y, 1);
+      _spr->drawCentreString(_label.substring(i - 1, i), x - 2, y + 3, 1);
     }
     else
     {
       x -= 9;
-      _spr->drawCentreString(str.substring(i - 1, i), x, y, 1);
+      _spr->drawCentreString(_label.substring(i - 1, i), x, y + 3, 1);
     }
   }
   _spr->unloadFont();
@@ -180,30 +191,39 @@ void BargraphBase::drawLabelValue()
 
 void BargraphBase::drawBar(uint8_t position, uint32_t color)
 {
-  _spr->fillRect(_laneX + ((position - 1) * _barWidth) + 1, _laneY, _barWidth - 1, _laneH, color);
+  _spr->fillRect(_laneX + ((position - 1) * _barWidth) + 1, 0, _barWidth - 1, _laneH, color);
 }
 
 void BargraphBase::drawScale()
 {
-  _spr->drawFastHLine(_laneX, _laneY + _laneH + 3, _laneW, _barColorOff);
+  _spr->drawFastHLine(_laneX, _laneH + 3, _laneW + 1, _barColorOff);
   for (uint8_t i = 1; i <= _numBars; i++)
   {
     drawBar(i, _barColorOff);
   }
-  _spr->pushSprite(_x, _y);
+  _spr->pushSprite(_x + 2, _y + _laneY);
 }
 
 void BargraphBase::drawScaleItem(float value, char *label)
 {
-  uint8_t x = _laneX + (value * _laneW);
-  _spr->drawFastVLine(x, _laneY + _laneH + 1, 2, _barColorOff);
-  _spr->drawCentreString(label, x, _laneY + _laneH + 5, 1);
+  uint16_t x = _laneX + (value * _laneW);
+  _spr->drawFastVLine(x, _laneH + 1, 2, _barColorOff);
+  _spr->drawCentreString(label, x, _laneH + 5, 1);
+  // DBG("_laneX (%d) + (value (%.1f) * _laneW (%d)) = X (%d) - %s\n", _laneX, value, _laneW, x, label);
 }
 
 void BargraphBase::drawInfiniteSymbol(float value)
 {
-  uint8_t x = _laneX + (value * _laneW);
-  _spr->drawFastVLine(x, _laneY + _laneH + 1, 2, _barColorOff);
-  _spr->drawCentreString("o", x - 2, _laneY + _laneH + 4, 1);
-  _spr->drawCentreString("o", x + 2, _laneY + _laneH + 4, 1);
+  uint16_t x = _laneX + (value * _laneW);
+  _spr->drawFastVLine(x, _laneH + 1, 2, _barColorOff);
+  _spr->drawCentreString("o", x - 2, _laneH + 4, 1);
+  _spr->drawCentreString("o", x + 2, _laneH + 4, 1);
+}
+
+void BargraphBase::drawHeader()
+{
+  _tft->loadFont(_smallFont);
+  _tft->drawCentreString(_header, _x + (_w / 2), _y + 3, 1);
+  _tft->drawFastHLine(_x, _y + _headerHeight, _w, TFT_DARKGREY);
+  _tft->unloadFont();
 }

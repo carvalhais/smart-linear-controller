@@ -4,113 +4,132 @@ Controller::Controller()
 {
 }
 
-void Controller::onAmplifierCallback(AmplifierCb callback)
-{
-    _amplifierCallback = callback;
-}
-void Controller::onLowPassFilterCallback(LowPassFilterCb callback)
-{
-    _lowPassFilterCallback = callback;
-}
-
-void Controller::onTransmitCallback(TransmitCb callback)
-{
-    _transmitCallback = callback;
-}
-
-void Controller::onPowerSupplyCallback(PowerSupplyCb callback)
-{
-    _psuCallback = callback;
-}
-
 Band Controller::bandLookup(uint32_t freq)
 {
     for (uint8_t i = 1; i < BANDS_SIZE; i++)
     {
-        if (freq >= _bands[i].min && freq <= _bands[i].max)
+        if (freq >= HAM_BANDS[i].min && freq <= HAM_BANDS[i].max)
         {
-            return _bands[i];
+            return HAM_BANDS[i];
         }
     }
-    return _bands[0];
+    return HAM_BANDS[0];
 }
 
-void Controller::onInputSwr(float forwardMv, float reverseMv)
+void Controller::onOutputPower(float forwardWatts, float reverseWatts)
 {
     if (!_started)
         return;
-    bool txState = forwardMv > 0;
-    if (txState != _lastRFTxState)
+
+    if (forwardWatts > 0.0f || _outputPowerAccumulator > 0.0f)
     {
-        _lastRFTxState = txState;
-        // Serial.printf("RF PTT Changed: %s (%lu)\n", txState ? "true" : "false", millis());
+        float alpha = forwardWatts > _outputPowerAccumulator ? 1.0f : 0.2f; // 1 = fast 0.2 = slow
+
+        _outputPowerAccumulator += alpha * (forwardWatts - _outputPowerAccumulator);
+        if (_outputPowerAccumulator < 1.0f)
+            _outputPowerAccumulator = 0.0f;
+
+        _ui.updateOutputPower(_outputPowerAccumulator, reverseWatts);
+
+        float gain = _inputPowerAccumulator == 0.0f ? 0.0f : 10 * log(_outputPowerAccumulator / _inputPowerAccumulator);
+
+        // DBG("Controller::onOutputPower: Output: %.4f, Out Avg %.4fW, In Avg: %.4fW, Gain: %.1fdB [Core %d]\n", forwardWatts, _outputPowerAccumulator, _inputPowerAccumulator, gain, xPortGetCoreID());
+
+        if (gain != _powerGainDB)
+        {
+            _powerGainDB = gain;
+            _ui.updateGain(_powerGainDB);
+        }
     }
-    _meters.updateInputSwr(forwardMv, reverseMv);
 }
 
-void Controller::onOutputSwr(float forwardMv, float reverseMv)
+void Controller::onInputPower(float forwardWatts)
 {
     if (!_started)
         return;
-    _meters.updateOutputSwr(forwardMv, reverseMv);
+
+    if (forwardWatts > 0.0f)
+    {
+        _timerRfInput = millis() + 100;
+        if (!_txStateRF)
+        {
+            _txStateRF = true;
+            DBG("RF Input: TX ON (ms %ld) [Core %d]\n", millis(), xPortGetCoreID());
+        }
+    }
+
+    if (forwardWatts > 0.0f || _inputPowerAccumulator > 0.0f)
+    {
+        // DBG("Controller::onInputPower: %.1fW [Core %d]\n", forwardWatts, xPortGetCoreID());
+
+        float alpha = forwardWatts > _inputPowerAccumulator ? 1.0f : 0.2f; // 1 = fast 0.2 = slow
+        _inputPowerAccumulator += alpha * (forwardWatts - _inputPowerAccumulator);
+        if (_inputPowerAccumulator < 0.1f)
+            _inputPowerAccumulator = 0.0f;
+        _ui.updateInputPower(_inputPowerAccumulator);
+    }
 }
 
 void Controller::onButtonPressed(int button, bool longPress)
 {
     DBG("onButtonPressed: Button: %d, Long: %s\n", button, longPress ? "true" : "false");
+    switch (button)
+    {
+    case BUTTON_A:
+        if (longPress)
+        {
+            _ui.previousScreen();
+        }
+        else
+        {
+            _ui.nextScreen();
+        }
+        break;
+    }
 }
 
 void Controller::onFrequencyChanged(uint32_t frequency, uint8_t modulation, uint8_t filter, bool txState)
 {
     // DBG("Controller::onFrequencyChanged [Core %d]\n", xPortGetCoreID());
-
     uint32_t mainfreq = frequency / 1000;
 
     if (mainfreq != _lastFreq)
     {
-        _lastBand = bandLookup(mainfreq);
+        Band band = bandLookup(mainfreq);
+        if (band.name != _lastBand.name)
+        {
+            _hal.onBandChanged(mainfreq, band);
+        }
+        _lastBand = band;
         _lastFreq = mainfreq;
-
-        Amplifier amp = mainfreq >= FREQ_VHF_AMP ? AMP_VHF : AMP_HF;
-
-        if (amp != _lastAmp)
-        {
-            _lastAmp = amp;
-            if (_amplifierCallback)
-                _amplifierCallback(_lastAmp);
-        }
-
-        if (_lastAmp == AMP_HF && _lastBand.lpf != _lastLpf)
-        {
-            _lastLpf = _lastBand.lpf;
-            if (_lowPassFilterCallback)
-                _lowPassFilterCallback(_lastLpf);
-        }
     }
 
-    _transmitEnabled = modulation <= 5 &&
-                       strcmp(_lastBand.name, "-") != 0 &&
-                       strcmp(_lastBand.name, "UHF") != 0;
+    _knownBand = modulation <= 5 &&
+                 strcmp(_lastBand.name, "-") != 0 &&
+                 strcmp(_lastBand.name, "UHF") != 0;
 
-    if (txState != _lastBTTxState)
+    if (txState != _txStateBT)
     {
-        _lastBTTxState = txState;
+        _txStateBT = txState;
 
-        if (_transmitCallback && _transmitEnabled)
-            _transmitCallback(txState);
+        if (transmitEnabled())
+            _hal.onTransmitChanged(txState);
 
-        // DBG("BT PTT Changed: %s (%lu)\n", txState ? "true" : "false", millis());
+        DBG("BT PTT Changed: %s (%lu) [Core %d]\n", txState ? "true" : "false", millis(), xPortGetCoreID());
     }
-
-    _freq.frequencyChanged(frequency, modulation, filter, txState, _lastBand.name, _transmitEnabled);
+    _ui.frequencyChanged(frequency, modulation, filter, txState, _lastBand.name, transmitEnabled());
 }
 
 void Controller::onClientConnected(uint8_t macAddress[6])
 {
     DBG("Controller::onClientConnected [Core %d]\n", xPortGetCoreID());
     _connected = true;
-    if (_psuCallback)
-        _psuCallback(true);
+}
+
+void Controller::onPowerSupplyStatus(PowerSupplyMode mode, int intTemp, int outTemp, float current, float outVoltage, int inputVoltage)
+{
+    _psuAlarm = mode != PowerSupplyMode::NORMAL;
+    _ui.updatePowerSupply(mode, intTemp, outTemp, current, outVoltage, inputVoltage);
 }
 
 void Controller::onMeterUpdated(uint8_t type, uint8_t rawValue)
@@ -122,38 +141,92 @@ void Controller::onMeterUpdated(uint8_t type, uint8_t rawValue)
         value = value / 150.0 * 100;
         break;
     }
-
     //_analog.update(value);
     // DBG("Controller::onMeterUpdate: Type: %d, Raw: %d, Value: %d \n", type, rawValue, value);
+}
+
+void Controller::onDiagnosticsUpdated(Diag diag)
+{
+    _ui.updateDiagnostics(diag);
+}
+
+void Controller::onTemperatureUpdated(float temperature)
+{
+    if (_lastTemperature != temperature)
+    {
+        _ui.updateTemperature(temperature);
+
+        float alpha = temperature > _temperatureAccumulator ? 1 : 0.1f; // 1 = fast 0.1 = slow
+        _temperatureAccumulator += alpha * (temperature - _temperatureAccumulator);
+
+        _overTemperature = _temperatureAccumulator > PROTECTION_TEMPERATURE;
+
+        uint8_t t = minimum(_temperatureAccumulator, _temperatureMax);
+        t = maximum(t, _temperatureMin);
+
+        uint8_t fanSpeed = map(t, _temperatureMin, _temperatureMax, 0, 100);
+
+        _lastTemperature = temperature;
+        if (fanSpeed != _lastFanSpeed)
+        {
+            _hal.setFanSpeed(fanSpeed);
+            _ui.updateFanSpeed(fanSpeed);
+            _lastFanSpeed = fanSpeed;
+            DBG("Controller: Fan speed set to %d%% (Temp: %.2foC, Avg: %.2foC) [Core %d]\n", fanSpeed, temperature, _temperatureAccumulator, xPortGetCoreID());
+        }
+    }
+}
+
+void Controller::onTouch(TouchPoint tp)
+{
+    if (millis() > _nextTouch)
+    {
+        TouchCmd cmd = _ui.touch(tp);
+        switch (cmd)
+        {
+        case TouchCmd::TOUCH_NONE:
+            break;
+        case TouchCmd::MAIN_PSU:
+            _ui.loadScreen(Screens::PSU);
+            break;
+        case TouchCmd::MAIN_BYPASS:
+            _bypassEnabled = !_bypassEnabled;
+            _ui.updateBypass(_bypassEnabled);
+            _hal.onPowerSupplyChanged(_started && !_bypassEnabled);
+            break;
+        case TouchCmd::MAIN_STANDBY:
+
+            break;
+        case TouchCmd::PSU_BACK:
+            _ui.loadScreen(Screens::MAIN);
+            break;
+        }
+        _nextTouch = millis() + 500;
+    }
+}
+
+bool Controller::transmitEnabled()
+{
+    return _knownBand &&
+           !_bypassEnabled;
+    // return _knownBand &&
+    //        !_bypassEnabled &&
+    //        !_protectionEnabled &&
+    //        !_psuAlarm &&
+    //        !_overTemperature;
 }
 
 void Controller::start()
 {
     DBG("Controller::start() [Core %d]\n", xPortGetCoreID());
 
-    if (_rig->initializeRig())
+    if (_rig.initializeRig())
     {
         DBG("Controller::start() Transceiver detected successfully\n");
-
-        // fill the body region to clear any previous content
-        _tft.fillRect(1, HEADER_HEIGHT + 1, SCREEN_WIDTH - 2, SCREEN_HEIGHT - HEADER_HEIGHT - 2, TFT_BLACK);
-
-        // initialize the Frequency Widget
-        _freq.begin(1, HEADER_HEIGHT + 1, SCREEN_WIDTH - 2, 40, &_tft, EurostileNextProWide13, EurostileNextProNr18, EurostileNextProSemiBold32);
-
-        // initialize the bargraphs (input and output meters)
-        _meters.begin(1, 61, SCREEN_WIDTH - 2, 119, &_tft, Tahoma9Sharp, EurostileNextProNr18);
-
-        // "Digital" meters at the bottom
-        _bottom.begin(1, 180, SCREEN_WIDTH - 2, 40, &_tft, Tahoma9Sharp, EurostileNextProNr18);
-        _bottom.updateVolts(53);
-        _bottom.updateAmperes(0.1);
-        _bottom.updateTemperature(56);
-        _bottom.updateAntenna((char *)"ANT A");
-
-        //_analog.begin(&_tft, 2, 100, 316, 118);
-
+        _ui.loadScreen(Screens::MAIN);
+        //_ui.loadScreen(Screens::PSU);
         _started = true;
+        _hal.onPowerSupplyChanged(true);
     }
     else
     {
@@ -165,12 +238,14 @@ void Controller::onClientDisconnected()
 {
     DBG("Controller::onClientDisconnected [Core %d]\n", xPortGetCoreID());
     _connected = false;
-    if (_psuCallback)
-        _psuCallback(false);
+    _hal.onPowerSupplyChanged(false);
 }
 
 void Controller::loop()
 {
+    _hal.loop();
+    _psu.loop();
+
     // start & end functions must run o loop (core 1) to avoid blocking core 0 (bluetooth)
     if (_connected && !_started)
     {
@@ -180,28 +255,102 @@ void Controller::loop()
     {
         end();
     }
-    if (_started)
+
+    _ui.loop(_started);
+
+    if (_txStateRF && millis() > _timerRfInput)
     {
-        _freq.loop();
-        _meters.loop();
-        //_analog.loop();
+        _txStateRF = false;
+        DBG("RF Input: TX OFF (ms %ld) [Core %d]\n", millis(), xPortGetCoreID());
     }
 }
 
-void Controller::begin(ICOM *rig)
+void Controller::begin()
 {
     DBG("Controller::begin [Core %d]\n", xPortGetCoreID());
-    _rig = rig;
-    _tft.init();
-#ifdef M5STACK
-    _tft.invertDisplay(true);
-#endif
-    _tft.setRotation(1); // 3
-    _tft.fillScreen(TFT_BLACK);
 
-    _ui.begin(&_tft, EurostileNextProWide13);
-    _ui.drawHeader();
-    _ui.clearScreen();
+    _ui.begin();
+
+    /*************** RIG BEGIN */
+    auto cbConnected = std::bind(&Controller::onClientConnected,
+                                 this,
+                                 std::placeholders::_1);
+    auto cbFrequency = std::bind(&Controller::onFrequencyChanged,
+                                 this,
+                                 std::placeholders::_1,
+                                 std::placeholders::_2,
+                                 std::placeholders::_3,
+                                 std::placeholders::_4);
+    auto cbDisconnected = std::bind(&Controller::onClientDisconnected,
+                                    this);
+    auto cbMeter = std::bind(&Controller::onMeterUpdated,
+                             this,
+                             std::placeholders::_1,
+                             std::placeholders::_2);
+
+    _rig.onConnectedCallback(cbConnected);
+    _rig.onDisconnectedCallback(cbDisconnected);
+    _rig.onFrequencyCallback(cbFrequency);
+    _rig.onMeterCallback(cbMeter);
+
+    _rig.begin(BT_NAME);
+
+    /*************** RIG END */
+
+    /*************** HAL BEGIN */
+    auto cbOutputPwr = std::bind(&Controller::onOutputPower,
+                                 this,
+                                 std::placeholders::_1,
+                                 std::placeholders::_2);
+    auto cbInputPwr = std::bind(&Controller::onInputPower,
+                                this,
+                                std::placeholders::_1);
+    auto cbButtons = std::bind(&Controller::onButtonPressed,
+                               this,
+                               std::placeholders::_1,
+                               std::placeholders::_2);
+    auto cbDiag = std::bind(&Controller::onDiagnosticsUpdated,
+                            this,
+                            std::placeholders::_1);
+
+    auto cbTemp = std::bind(&Controller::onTemperatureUpdated,
+                            this,
+                            std::placeholders::_1);
+    auto cbTouch = std::bind(&Controller::onTouch,
+                             this,
+                             std::placeholders::_1);
+    _hal.onOutputRfPowerCallback(cbOutputPwr);
+    _hal.onInputRfPowerCallback(cbInputPwr);
+    _hal.onButtonPressedCallback(cbButtons);
+    _hal.onDiagnosticsCallback(cbDiag);
+    _hal.onTemperatureCallback(cbTemp);
+    _hal.onTouchCallback(cbTouch);
+
+    Diag diag = _hal.begin();
+    /*************** HAL END */
+
+    /*************** PSU BEGIN */
+    auto cbPsuStatus = std::bind(&Controller::onPowerSupplyStatus,
+                                 this,
+                                 std::placeholders::_1,
+                                 std::placeholders::_2,
+                                 std::placeholders::_3,
+                                 std::placeholders::_4,
+                                 std::placeholders::_5,
+                                 std::placeholders::_6);
+
+    _psu.onStatusCallback(cbPsuStatus);
+    _psu.begin();
+    /*************** PSU END */
+
+    if (diag.mainAdc && diag.mainExpander && diag.rfAdc && diag.temperature)
+    {
+        _ui.loadScreen(Screens::STANDBY);
+    }
+    else
+    {
+        _ui.loadScreen(Screens::DIAG);
+    }
 }
 
 void Controller::end()
@@ -209,10 +358,7 @@ void Controller::end()
     DBG("Controller::end() [Core %d]\n", xPortGetCoreID());
     if (_started)
     {
-        _ui.clearScreen();
-        _freq.end();
-        _meters.end();
-        _bottom.end();
+        _ui.loadScreen(Screens::STANDBY);
     }
     _started = false;
 }

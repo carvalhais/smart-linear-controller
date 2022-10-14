@@ -1,38 +1,39 @@
 #include <Arduino.h>
 #include <TFT_eSPI.h>
 
-#include "UI.h"
 #include "Types.h"
 #include "Bargraph/BargraphSwr.h"
 #include "Bargraph/BargraphRfPower.h"
+#include "Bargraph/BargraphTemperature.h"
 
-class Meters : public UI
+class Meters
 {
 public:
     Meters();
 
     void begin(uint32_t x, uint32_t y, uint32_t w, uint32_t h, TFT_eSPI *tft, const uint8_t smallFont[], const uint8_t mediumFont[]);
     void end();
-    void updateInputSwr(float forwardMv, float reverseMv);
-    void updateOutputSwr(float forwardMv, float reverseMv);
+    void updateOutputPower(float forwardWatts, float reverseWatts);
+    void updateInputPower(float forwardWatts);
+    void updateTemperature(float temperature);
     void loop();
 
 private:
-    
-    void drawSubHeader(const char *string, uint16_t x, uint16_t y, uint16_t w);
-
     BargraphRfPower _meterInputPower;
-    BargraphSwr _meterInputSwr;
+    BargraphTemperature _meterTemperature;
 
     BargraphRfPower _meterOutputPower;
     BargraphSwr _meterOutputSwr;
 
     time_t _next = millis();
+    bool _updated;
 
     uint32_t _x;
     uint32_t _y;
     uint32_t _w;
     uint32_t _h;
 
+    TFT_eSPI *_tft;
     uint8_t *_smallFont;
+    uint8_t *_mediumFont;
 };
