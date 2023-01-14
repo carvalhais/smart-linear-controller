@@ -14,7 +14,7 @@
 #include "Fonts/EurostileNextProWide13.h"
 #include "Fonts/EurostileNextProNr18.h"
 #include "Fonts/EurostileNextProSemiBold32.h"
-
+#include "Fonts/EurostileNextProSemiBold26.h"
 class UI
 {
 public:
@@ -53,6 +53,7 @@ private:
     uint8_t *_microFont;
     uint8_t *_smallFont;
     uint8_t *_mediumFont;
+    uint8_t *_semiLarge;
     uint8_t *_largeFont;
 
     uint16_t _x = OFFSET_LEFT + 1;

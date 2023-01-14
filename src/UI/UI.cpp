@@ -27,6 +27,7 @@ void UI::begin()
     _microFont = (uint8_t *)Tahoma9Sharp;
     _smallFont = (uint8_t *)EurostileNextProWide13;
     _mediumFont = (uint8_t *)EurostileNextProNr18;
+    _semiLarge = (uint8_t *)EurostileNextProSemiBold26;
     _largeFont = (uint8_t *)EurostileNextProSemiBold32;
 
     _tft.init();
@@ -103,7 +104,7 @@ void UI::loadScreen(Screens screen)
     case Screens::MAIN:
         DBG("Active Screen: MAIN\n");
         _screenPtr = &_main;
-        _main.begin(_x, _y, _w, _h, &_tft, _microFont, _smallFont, _mediumFont, _largeFont);
+        _main.begin(_x, _y, _w, _h, &_tft, _microFont, _smallFont, _mediumFont, _semiLarge, _largeFont);
         break;
     case Screens::PSU:
         DBG("Active Screen: PSU\n");

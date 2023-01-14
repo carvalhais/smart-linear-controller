@@ -1,13 +1,14 @@
 #include <TFT_eSPI.h>
 #include <SPI.h>
 #include <memory>
-#include "Defines.h"
-#include "Types.h"
-#include "ICOM.h"
-#include "HardwareLayer.h"
-#include "UI/UI.h"
-#include "CAN/CANTypes.h"
-#include "CAN/CANPSU.h"
+#include <Preferences.h>
+#include <Defines.h>
+#include <Types.h>
+#include <ICOM.h>
+#include <HardwareLayer.h>
+#include <UI/UI.h>
+#include <CAN/CANTypes.h>
+#include <CAN/CANPSU.h>
 
 #define BANDS_SIZE 15
 
@@ -31,7 +32,7 @@ public:
     void onDiagnosticsUpdated(Diag diag);
     void onTemperatureUpdated(float temperature);
     void onTouch(TouchPoint tp);
-    
+
     // void onAmplifierCallback(AmplifierCb callback);
     // void onLowPassFilterCallback(LowPassFilterCb callback);
 
@@ -43,10 +44,12 @@ private:
     void updateFrequencyWidget();
     void start();
     bool transmitEnabled();
+    void setBypassState();
 
     float _outputPowerAccumulator = 0;
     float _inputPowerAccumulator = 0;
     float _powerGainDB = 0;
+    Preferences _preferences;
 
     Band bandLookup(uint32_t freq);
 
@@ -58,7 +61,6 @@ private:
     uint8_t _temperatureMax = 60;
     // ATU1000 _atu;
     UI _ui;
-
 
     Band HAM_BANDS[BANDS_SIZE] = {
         {
@@ -76,7 +78,7 @@ private:
             name : (char *)"160",
             lpf : BAND_160M,
             interceptFwd : 45.5f,
-            interceptRev : 40.8f, //43.6f
+            interceptRev : 40.8f, // 43.6f
             inputPowerFactor : 1.30
         },
         {
@@ -165,7 +167,7 @@ private:
             max : 29700,
             name : (char *)"10M",
             lpf : BAND_12_10M,
-            interceptFwd : 44.4f, //46.7
+            interceptFwd : 44.4f, // 46.7
             interceptRev : 39.7f,
             inputPowerFactor : 0.72
         },
@@ -217,5 +219,4 @@ private:
     volatile bool _bypassEnabled = false;
     volatile bool _psuAlarm = false;
     volatile bool _overTemperature = false;
-
 };

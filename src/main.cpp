@@ -3,8 +3,6 @@
 #include "Controller.h"
 
 Controller ctl;
-timer_t last = millis();
-uint8_t count = 0;
 
 void setup()
 {
@@ -15,10 +13,4 @@ void setup()
 void loop(void)
 {
   ctl.loop();
-  // if (count > 30)
-  // {
-  //   DBG("MAIN: Loop interval: %dms [Core %d]\n", millis() - last, xPortGetCoreID());
-  // }
-  // count++;
-  // last = millis();
 }

@@ -5,7 +5,15 @@ BargraphBase::BargraphBase() {}
 
 BargraphBase::~BargraphBase() {}
 
-void BargraphBase::begin(uint32_t x, uint32_t y, uint32_t w, uint32_t h, TFT_eSPI *tft, const uint8_t smallFont[], const uint8_t mediumFont[], const char *header)
+void BargraphBase::begin(
+    uint32_t x,
+    uint32_t y,
+    uint32_t w,
+    uint32_t h,
+    TFT_eSPI *tft,
+    const uint8_t smallFont[],
+    const uint8_t mediumFont[],
+    const char *header)
 {
   _x = x;
   _y = y;
@@ -172,18 +180,18 @@ void BargraphBase::drawLabelValue()
   _spr->fillRect(x, y, _w - x - 2, 22, TFT_BLACK);
   _spr->loadFont(_mediumFont);
   _spr->setTextColor(TFT_WHITE, TFT_BLACK);
-  x = _w - 2;
+  x = _w;
   for (uint8_t i = _label.length(); i > 0; i--)
   {
     if (_label.substring(i - 1, i) == ".")
     {
-      x -= 5;
-      _spr->drawCentreString(_label.substring(i - 1, i), x - 2, y + 3, 1);
+      x -= (_charWidth * .4);
+      _spr->drawCentreString(_label.substring(i - 1, i), x - 5, y, 1);
     }
     else
     {
-      x -= 9;
-      _spr->drawCentreString(_label.substring(i - 1, i), x, y + 3, 1);
+      x -= _charWidth;
+      _spr->drawCentreString(_label.substring(i - 1, i), x, y, 1);
     }
   }
   _spr->unloadFont();

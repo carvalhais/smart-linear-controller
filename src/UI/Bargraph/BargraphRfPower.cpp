@@ -19,7 +19,7 @@ void BargraphRfPower::setValue(float value)
   }
 
   char wattstxt[5];
-  if (value >= 100)
+  if (!_showDecimal || value == 0 || value >= 100)
   {
     snprintf(wattstxt, 5, "%1.0f", value);
   }
@@ -32,6 +32,11 @@ void BargraphRfPower::setValue(float value)
     value = _maxScale;
 
   setValueLabel(value / (float)_maxScale, wattstxt);
+}
+
+void BargraphRfPower::showDecimal(bool value)
+{
+  _showDecimal = value;
 }
 
 void BargraphRfPower::drawScale()

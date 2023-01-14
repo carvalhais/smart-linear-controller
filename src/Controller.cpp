@@ -191,8 +191,7 @@ void Controller::onTouch(TouchPoint tp)
             break;
         case TouchCmd::MAIN_BYPASS:
             _bypassEnabled = !_bypassEnabled;
-            _ui.updateBypass(_bypassEnabled);
-            _hal.onPowerSupplyChanged(_started && !_bypassEnabled);
+            setBypassState();
             break;
         case TouchCmd::MAIN_STANDBY:
 
@@ -216,6 +215,17 @@ bool Controller::transmitEnabled()
     //        !_overTemperature;
 }
 
+void Controller::setBypassState()
+{
+    _ui.updateBypass(_bypassEnabled);
+    _hal.onPowerSupplyChanged(_started && !_bypassEnabled);
+    if (_preferences.getBool("bypass") != _bypassEnabled)
+    {
+        _preferences.putBool("bypass", _bypassEnabled);
+        DBG("Preferences: Bypass set to %s\n", _bypassEnabled ? "true" : "false");
+    }
+}
+
 void Controller::start()
 {
     DBG("Controller::start() [Core %d]\n", xPortGetCoreID());
@@ -226,7 +236,7 @@ void Controller::start()
         _ui.loadScreen(Screens::MAIN);
         //_ui.loadScreen(Screens::PSU);
         _started = true;
-        _hal.onPowerSupplyChanged(true);
+        setBypassState();
     }
     else
     {
@@ -268,6 +278,8 @@ void Controller::loop()
 void Controller::begin()
 {
     DBG("Controller::begin [Core %d]\n", xPortGetCoreID());
+
+    _preferences.begin("settings", false);
 
     _ui.begin();
 
@@ -342,6 +354,8 @@ void Controller::begin()
     _psu.onStatusCallback(cbPsuStatus);
     _psu.begin();
     /*************** PSU END */
+
+    _bypassEnabled = _preferences.getBool("bypass");
 
     if (diag.mainAdc && diag.mainExpander && diag.rfAdc && diag.temperature)
     {

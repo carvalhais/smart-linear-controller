@@ -20,6 +20,7 @@ public:
         const uint8_t microFont[],
         const uint8_t smallFont[],
         const uint8_t mediumFont[],
+        const uint8_t semiLarge[],
         const uint8_t largeFont[]);
 
     void loop();
@@ -43,6 +44,7 @@ private:
     uint8_t *_microFont;
     uint8_t *_smallFont;
     uint8_t *_mediumFont;
+    uint8_t *_semiLarge;
     uint8_t *_largeFont;
     uint16_t _x;
     uint16_t _y;

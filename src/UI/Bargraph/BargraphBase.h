@@ -10,7 +10,15 @@ class BargraphBase
 public:
 	BargraphBase();
 	virtual ~BargraphBase();
-	void begin(uint32_t x, uint32_t y, uint32_t w, uint32_t h, TFT_eSPI *tft, const uint8_t smallFont[], const uint8_t mediumFont[], const char *header);
+	void begin(
+		uint32_t x,
+		uint32_t y,
+		uint32_t w,
+		uint32_t h,
+		TFT_eSPI *tft,
+		const uint8_t smallFont[],
+		const uint8_t mediumFont[],
+		const char *header);
 	void end();
 	void setColor(uint32_t on, uint32_t off, uint32_t font);
 	void loop();
@@ -40,8 +48,9 @@ protected:
 	uint8_t _headerHeight = 14;
 	uint8_t _paddingLeft = 6;
 	uint8_t _paddingTop = 5;
-	uint8_t _paddingRight = 40;
+	uint8_t _paddingRight = 70;
 	uint8_t _paddingBottom = 16;
+	uint8_t _charWidth = 16;
 
 	float _value;
 	String _label;

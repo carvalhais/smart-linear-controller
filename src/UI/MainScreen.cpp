@@ -4,7 +4,16 @@ MainScreen::MainScreen()
 {
 }
 
-void MainScreen::begin(uint16_t x, uint16_t y, uint16_t w, uint16_t h, TFT_eSPI *tft, const uint8_t microFont[], const uint8_t smallFont[], const uint8_t mediumFont[], const uint8_t largeFont[])
+void MainScreen::begin(uint16_t x,
+                       uint16_t y,
+                       uint16_t w,
+                       uint16_t h,
+                       TFT_eSPI *tft,
+                       const uint8_t microFont[],
+                       const uint8_t smallFont[],
+                       const uint8_t mediumFont[],
+                       const uint8_t semiLarge[],
+                       const uint8_t largeFont[])
 {
     _x = x;
     _y = y;
@@ -14,6 +23,7 @@ void MainScreen::begin(uint16_t x, uint16_t y, uint16_t w, uint16_t h, TFT_eSPI 
     _microFont = (uint8_t *)microFont;
     _smallFont = (uint8_t *)smallFont;
     _mediumFont = (uint8_t *)mediumFont;
+    _semiLarge = (uint8_t *)semiLarge;
     _largeFont = (uint8_t *)largeFont;
     _bandHeight = 70;
 
@@ -28,7 +38,7 @@ void MainScreen::begin(uint16_t x, uint16_t y, uint16_t w, uint16_t h, TFT_eSPI 
 
     //_meters = new Meters();
     // initialize the bargraphs (input and output meters)
-    _meters.begin(x, y + height + 1, w, metersHeight, _tft, _microFont, _mediumFont);
+    _meters.begin(x, y + height + 1, w, metersHeight, _tft, _microFont, _semiLarge);
 
     //_bottom = new Bottom();
     // "Digital" meters at the bottom

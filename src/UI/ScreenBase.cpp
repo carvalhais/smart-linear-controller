@@ -10,15 +10,15 @@ TouchCmd ScreenBase::getTouchRegion(TouchPoint tp)
     {
         TouchRegion reg = _touchRegions[i];
 
-        uint16_t bottomLeftX = reg.x;
-        uint16_t bottomLeftY = reg.y + reg.h;
+        uint16_t topLeftX = reg.x;
+        uint16_t topLeftY = reg.y;
 
-        uint16_t topRightX = reg.x + reg.w;
-        uint16_t topRightY = reg.y;
+        uint16_t bottomRightX = reg.x + reg.w;
+        uint16_t bottomRightY = reg.y + reg.h;
 
-        DBG("TouchRegion: BL: (%d, %d), TR: (%d, %d) CMD: %d", bottomLeftX, bottomLeftY, topRightX, topRightY, reg.cmd);
+        DBG("TouchRegion: TL: (%d, %d), BR: (%d, %d) CMD: %d", topLeftX, topLeftY, bottomRightX, bottomRightY, reg.cmd);
 
-        if (tp.xPos > bottomLeftX && tp.yPos < bottomLeftY && tp.xPos < topRightX && tp.yPos > topRightY)
+        if (tp.xPos > topLeftX && tp.xPos < bottomRightX && tp.yPos > topLeftY && tp.yPos < bottomRightY)
         {
             DBG(" >> Match\n");
             return reg.cmd;
