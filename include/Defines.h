@@ -9,49 +9,42 @@
 #define PROTECTION_GAIN 30
 #define PROTECTION_TEMPERATURE 50
 
-#define IO_P0 0
-#define IO_P1 1
-#define IO_P2 2
-#define IO_P3 3
-#define IO_P4 4
-#define IO_P5 5
-#define IO_P6 6
-#define IO_P7 7
-#define IO_P10 8
-#define IO_P11 9
-#define IO_P12 10
-#define IO_P13 11
-#define IO_P14 12
-#define IO_P15 13
-#define IO_P16 14
-#define IO_P17 15
+#define IO_PA0 0
+#define IO_PA1 1
+#define IO_PA2 2
+#define IO_PA3 3
+#define IO_PA4 4
+#define IO_PA5 5
+#define IO_PA6 6
+#define IO_PA7 7
+#define IO_PB0 8
+#define IO_PB1 9
+#define IO_PB2 10
+#define IO_PB3 11
+#define IO_PB4 12
+#define IO_PB5 13
+#define IO_PB6 14
+#define IO_PB7 15
 
-#define IO_PIN_FAN IO_P0
-
-#define IO_PIN_TX_RX_HF IO_P10
-#define IO_PIN_HF_VHF IO_P11
-#define IO_PIN_TX_RX_VHF IO_P12
-#define IO_PIN_BIAS_HF IO_P13
-#define IO_PIN_BIAS_VHF IO_P14
-
-#define IO_PIN_PULSE_RX IO_P15
-#define IO_PIN_PULSE_TX IO_P16
-#define IO_PIN_PSU_ON IO_P17
+#define IO_PIN_TX_RX_HF IO_PB0
+#define IO_PIN_HF_VHF IO_PB1
+#define IO_PIN_TX_RX_VHF IO_PB2
+#define IO_PIN_PULSE_RX IO_PB3
+#define IO_PIN_PULSE_TX IO_PB4
+#define IO_PIN_BIAS_VHF IO_PB5
+#define IO_PIN_BIAS_HF IO_PB6
+#define IO_PIN_PSU_ON IO_PB7
 
 #define ADDRESS_IO_EXPANDER 0x20
-#define ADDRESS_ADC_OUTPUT_1 0x48
-#define ADDRESS_ADC_MAIN_BOARD 0x49
+#define ADDRESS_ADC_OUTPUT_FWD 0x48
+#define ADDRESS_ADC_OUTPUT_REV 0x49
 
-#define ADC_RF_CHANNEL_VHF_FWD 3
-#define ADC_RF_CHANNEL_VHF_REV 2
-#define ADC_RF_CHANNEL_HF_FWD 1
 #define ADC_RF_CHANNEL_HF_REV 0
+#define ADC_RF_CHANNEL_HF_FWD 1
+#define ADC_RF_CHANNEL_VHF_REV 3 // 2
+#define ADC_RF_CHANNEL_VHF_FWD 2 // 3
 
-
-#define ADC_MAIN_TEMPERATURE 0
-#define ADC_MAIN_INPUT_FWD 1
-
-#define ADC_SLOPE 40.0f        // Slope of the AD8307 log output (Default = 40)
+#define ADC_SLOPE 40.0f // Slope of the AD8307 log output (Default = 40)
 
 #define FREQ_VHF_AMP 60000
 
@@ -69,6 +62,9 @@
 #define BUTTON_A 39
 #define BUTTON_B 38
 #define BUTTON_C 37
+
+#define SCREEN_TIMEOUT 300000 // 5 minutos
+#define DEFAULT_BACKLIGHT_LEVEL 40
 
 #ifdef DEBUG
 #define DBG(...) Serial.printf(__VA_ARGS__)

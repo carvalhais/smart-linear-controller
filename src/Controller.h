@@ -57,8 +57,8 @@ private:
     HardwareLayer _hal;
     CANPSU _psu;
 
-    uint8_t _temperatureMin = 30;
-    uint8_t _temperatureMax = 60;
+    uint8_t _temperatureMin = 35;
+    uint8_t _temperatureMax = 50;
     // ATU1000 _atu;
     UI _ui;
 
@@ -68,135 +68,135 @@ private:
             max : 0,
             name : (char *)"-",
             lpf : BAND_OTHER,
-            interceptFwd : 42.2f,
-            interceptRev : 37.5f,
-            inputPowerFactor : 1
+            interceptFwd : 44.3, // 45.9
+            interceptRev : 42.3,
+            inputInterceptFwd : 55.5
         },
         {
             min : 1800,
             max : 2000,
             name : (char *)"160",
             lpf : BAND_160M,
-            interceptFwd : 45.5f,
-            interceptRev : 40.8f, // 43.6f
-            inputPowerFactor : 1.30
+            interceptFwd : 44.6, //
+            interceptRev : 42.6,
+            inputInterceptFwd : 55.5
         },
         {
             min : 3500,
             max : 4000,
             name : (char *)"80M",
             lpf : BAND_80M,
-            interceptFwd : 45.7f,
-            interceptRev : 41.0f,
-            inputPowerFactor : 1.28
+            interceptFwd : 44.6, //
+            interceptRev : 42.6,
+            inputInterceptFwd : 55.5
         },
         {
             min : 6900,
             max : 6999,
             name : (char *)";-)",
             lpf : BAND_60_40M,
-            interceptFwd : 45.8f,
-            interceptRev : 41.1f,
-            inputPowerFactor : 1.26
+            interceptFwd : 44.4, //
+            interceptRev : 42.4,
+            inputInterceptFwd : 55.5
         },
         {
             min : 7000,
             max : 7300,
             name : (char *)"40M",
             lpf : BAND_60_40M,
-            interceptFwd : 45.8f,
-            interceptRev : 41.1f,
-            inputPowerFactor : 1.26
+            interceptFwd : 44.4, //
+            interceptRev : 42.4,
+            inputInterceptFwd : 55.5
         },
         {
             min : 10000,
             max : 10500,
             name : (char *)"30M",
             lpf : BAND_30_20M,
-            interceptFwd : 45.7f,
-            interceptRev : 41.0f,
-            inputPowerFactor : 1.15
+            interceptFwd : 44.4, //
+            interceptRev : 42.4,
+            inputInterceptFwd : 55.5
         },
         {
             min : 14000,
             max : 14350,
             name : (char *)"20M",
             lpf : BAND_30_20M,
-            interceptFwd : 45.5f,
-            interceptRev : 40.8f,
-            inputPowerFactor : 1.05
+            interceptFwd : 44.4, // 45.7
+            interceptRev : 42.4,
+            inputInterceptFwd : 55.5
         },
         {
             min : 18000,
             max : 18500,
             name : (char *)"17M",
             lpf : BAND_17_15M,
-            interceptFwd : 45.1f,
-            interceptRev : 40.4f,
-            inputPowerFactor : 0.94
+            interceptFwd : 44.3, // 45.6
+            interceptRev : 42.3,
+            inputInterceptFwd : 55.5
         },
         {
             min : 21000,
             max : 21500,
             name : (char *)"15M",
             lpf : BAND_17_15M,
-            interceptFwd : 45.0f,
-            interceptRev : 40.3f,
-            inputPowerFactor : 0.90
+            interceptFwd : 44.3, // 45.6
+            interceptRev : 42.3,
+            inputInterceptFwd : 55.5
         },
         {
             min : 24500,
             max : 25000,
             name : (char *)"12M",
             lpf : BAND_12_10M,
-            interceptFwd : 44.9f,
-            interceptRev : 40.2f,
-            inputPowerFactor : 0.87
+            interceptFwd : 44.3, // 45.5
+            interceptRev : 42.3,
+            inputInterceptFwd : 55.5
         },
         {
             min : 26965,
             max : 27855,
             name : (char *)"11M",
             lpf : BAND_12_10M,
-            interceptFwd : 44.4f,
-            interceptRev : 39.7f,
-            inputPowerFactor : 0.72
+            interceptFwd : 44.3, // 45.4
+            interceptRev : 42.3,
+            inputInterceptFwd : 55.5
         },
         {
             min : 28000,
             max : 29700,
             name : (char *)"10M",
             lpf : BAND_12_10M,
-            interceptFwd : 44.4f, // 46.7
-            interceptRev : 39.7f,
-            inputPowerFactor : 0.72
+            interceptFwd : 44.3, // 45.4
+            interceptRev : 43.3,
+            inputInterceptFwd : 55.5
         },
         {
             min : 50000,
             max : 54000,
             name : (char *)"6M",
             lpf : BAND_6M,
-            interceptFwd : 44.7f, // 47.8f
-            interceptRev : 40.0f,
-            inputPowerFactor : 0.51
+            interceptFwd : 43.3, // 44.8
+            interceptRev : 41.3,
+            inputInterceptFwd : 55.5
         },
         {
             min : 144000,
             max : 148000,
             name : (char *)"VHF",
             lpf : BAND_2M,
-            interceptFwd : 42.8f,
-            interceptRev : 39.5f,
-            inputPowerFactor : 0.20
+            interceptFwd : 42.8,
+            interceptRev : 39.5,
+            inputInterceptFwd : 57.6
         },
         {
             min : 430000,
             max : 440000,
             name : (char *)"UHF",
             lpf : BAND_70CM,
-            interceptFwd : 39.5f,
-            interceptRev : 39.5f,
-            inputPowerFactor : 0.073
+            interceptFwd : 39.5,
+            interceptRev : 39.5,
+            inputInterceptFwd : 57.6
         },
     };
 
@@ -205,13 +205,16 @@ private:
     float _temperatureAccumulator;
     uint8_t _lastFanSpeed = 0;
     timer_t _timer1;
+    volatile timer_t _timerTimeout = 0;
     volatile timer_t _timerRfInput;
     uint8_t _counter;
     time_t _nextTouch;
 
     volatile bool _started = false;
+
     volatile bool _connected = false;
     volatile uint32_t _lastFreq = 0;
+    volatile bool _prevScreenOff = false;
     volatile bool _txStateBT = false;
     volatile bool _txStateRF = false;
     volatile bool _knownBand = false;

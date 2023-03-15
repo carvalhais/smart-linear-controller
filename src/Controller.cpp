@@ -20,11 +20,9 @@ void Controller::onOutputPower(float forwardWatts, float reverseWatts)
 {
     if (!_started)
         return;
-
     if (forwardWatts > 0.0f || _outputPowerAccumulator > 0.0f)
     {
-        float alpha = forwardWatts > _outputPowerAccumulator ? 1.0f : 0.2f; // 1 = fast 0.2 = slow
-
+        float alpha = forwardWatts > _outputPowerAccumulator ? 1.0f : 0.1f; // 1 = fast 0.2 = slow
         _outputPowerAccumulator += alpha * (forwardWatts - _outputPowerAccumulator);
         if (_outputPowerAccumulator < 1.0f)
             _outputPowerAccumulator = 0.0f;
@@ -47,8 +45,9 @@ void Controller::onInputPower(float forwardWatts)
 {
     if (!_started)
         return;
+    _timerTimeout = millis() + SCREEN_TIMEOUT;
 
-    if (forwardWatts > 0.0f)
+    if (forwardWatts > 0.1f)
     {
         _timerRfInput = millis() + 100;
         if (!_txStateRF)
@@ -62,10 +61,11 @@ void Controller::onInputPower(float forwardWatts)
     {
         // DBG("Controller::onInputPower: %.1fW [Core %d]\n", forwardWatts, xPortGetCoreID());
 
-        float alpha = forwardWatts > _inputPowerAccumulator ? 1.0f : 0.2f; // 1 = fast 0.2 = slow
+        float alpha = forwardWatts > _inputPowerAccumulator ? 1.0f : 0.1f; // 1 = fast 0.2 = slow
         _inputPowerAccumulator += alpha * (forwardWatts - _inputPowerAccumulator);
         if (_inputPowerAccumulator < 0.1f)
             _inputPowerAccumulator = 0.0f;
+
         _ui.updateInputPower(_inputPowerAccumulator);
     }
 }
@@ -90,6 +90,8 @@ void Controller::onButtonPressed(int button, bool longPress)
 
 void Controller::onFrequencyChanged(uint32_t frequency, uint8_t modulation, uint8_t filter, bool txState)
 {
+    _timerTimeout = millis() + SCREEN_TIMEOUT;
+
     // DBG("Controller::onFrequencyChanged [Core %d]\n", xPortGetCoreID());
     uint32_t mainfreq = frequency / 1000;
 
@@ -104,7 +106,7 @@ void Controller::onFrequencyChanged(uint32_t frequency, uint8_t modulation, uint
         _lastFreq = mainfreq;
     }
 
-    _knownBand = modulation <= 5 &&
+    _knownBand = (modulation <= 5 || modulation == 23) &&
                  strcmp(_lastBand.name, "-") != 0 &&
                  strcmp(_lastBand.name, "UHF") != 0;
 
@@ -152,7 +154,7 @@ void Controller::onDiagnosticsUpdated(Diag diag)
 
 void Controller::onTemperatureUpdated(float temperature)
 {
-    if (_lastTemperature != temperature)
+    if (_lastTemperature != temperature && _started)
     {
         _ui.updateTemperature(temperature);
 
@@ -179,6 +181,11 @@ void Controller::onTemperatureUpdated(float temperature)
 
 void Controller::onTouch(TouchPoint tp)
 {
+    _timerTimeout = millis() + SCREEN_TIMEOUT;
+
+    if (_prevScreenOff)
+        return;
+
     if (millis() > _nextTouch)
     {
         TouchCmd cmd = _ui.touch(tp);
@@ -208,6 +215,7 @@ bool Controller::transmitEnabled()
 {
     return _knownBand &&
            !_bypassEnabled;
+
     // return _knownBand &&
     //        !_bypassEnabled &&
     //        !_protectionEnabled &&
@@ -229,6 +237,7 @@ void Controller::setBypassState()
 void Controller::start()
 {
     DBG("Controller::start() [Core %d]\n", xPortGetCoreID());
+    _timerTimeout = millis() + SCREEN_TIMEOUT;
 
     if (_rig.initializeRig())
     {
@@ -248,6 +257,8 @@ void Controller::onClientDisconnected()
 {
     DBG("Controller::onClientDisconnected [Core %d]\n", xPortGetCoreID());
     _connected = false;
+    _lastFanSpeed = 0;
+    _hal.setFanSpeed(0);
     _hal.onPowerSupplyChanged(false);
 }
 
@@ -273,11 +284,20 @@ void Controller::loop()
         _txStateRF = false;
         DBG("RF Input: TX OFF (ms %ld) [Core %d]\n", millis(), xPortGetCoreID());
     }
+
+    bool screenOff = millis() > _timerTimeout;
+    if (screenOff != _prevScreenOff)
+    {
+        _prevScreenOff = screenOff;
+        _hal.setBacklightLevel(screenOff ? 0 : DEFAULT_BACKLIGHT_LEVEL);
+    }
 }
 
 void Controller::begin()
 {
     DBG("Controller::begin [Core %d]\n", xPortGetCoreID());
+
+    _timerTimeout = millis() + SCREEN_TIMEOUT;
 
     _preferences.begin("settings", false);
 
@@ -357,7 +377,7 @@ void Controller::begin()
 
     _bypassEnabled = _preferences.getBool("bypass");
 
-    if (diag.mainAdc && diag.mainExpander && diag.rfAdc && diag.temperature)
+    if (diag.mainExpander && diag.rfAdcFwd && diag.rfAdcRev && diag.temperature)
     {
         _ui.loadScreen(Screens::STANDBY);
     }

@@ -57,7 +57,7 @@ struct Band
     LowPassFilter lpf;
     float interceptFwd;
     float interceptRev;
-    float inputPowerFactor;
+    float inputInterceptFwd;
 };
 
 enum Screens
@@ -70,9 +70,10 @@ enum Screens
 
 struct Diag
 {
-    bool mainAdc;
+    bool inputBoard;
     bool mainExpander;
-    bool rfAdc;
+    bool rfAdcFwd;
+    bool rfAdcRev;
     bool temperature;
     float temperatureCelsius;
 };

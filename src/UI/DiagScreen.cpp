@@ -68,9 +68,10 @@ void DiagScreen::loop()
         _tft->drawLine(_x, _y + 20, _x + _w, _y + 20, TFT_DARKGREY);
         _position = 30;
 
-        printItem("I/O Expander (Main Board)", _diag.mainExpander);
-        printItem("Main Board ADC", _diag.mainAdc);
-        printItem("RF Sensor Board ADC", _diag.rfAdc);
+        printItem("I/O Expander", _diag.mainExpander);
+        //printItem("Main Board", _diag.inputBoard);
+        printItem("ADC RF Forward", _diag.rfAdcFwd);
+        printItem("ADC RF Reverse", _diag.rfAdcRev);
         printItem("Temperature Sensor", _diag.temperature);
         if (_diag.temperature)
         {

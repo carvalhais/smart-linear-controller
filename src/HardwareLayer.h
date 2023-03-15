@@ -5,10 +5,12 @@
 #include <Types.h>
 #include <Button.h>
 #include <LatchingRelay.h>
-#include <PCF8575.h>
 #include <TFT_eSPI.h>
 #include <FT62XXTouchScreen.h>
 #include <ADS1X15.h>
+#include <DS18B20.h>
+#include <OneWire.h>
+#include <MCP23017.h>
 
 class HardwareLayer
 {
@@ -43,6 +45,8 @@ private:
     void setAmplifier(Amplifier amp);
     void setLowPassFilter(LowPassFilter lpf);
     float readTemperature();
+    float readVoltage(uint8_t pin);
+    float readVoltageSamples(uint8_t pin, uint8_t samples);
 
     RfPowerSwrCb _outputPowerCallback;
     RfPowerCb _inputPowerCallback;
@@ -54,7 +58,7 @@ private:
     void readOutputPower();
     void readInputPower();
 
-    float readRfPower(uint8_t index, float intercept);
+    float readRfPower(bool forward, float intercept);
 
     bool deviceReady(uint8_t address);
     void doHigh();
@@ -63,23 +67,14 @@ private:
 
     volatile time_t _timer1;
     volatile time_t _timer2;
+    volatile time_t _timer3;
+    volatile bool state;
 
     LatchingRelay _vhfRelay;
     LowPassFilter _lpf = BAND_OTHER;
     uint8_t _previousLpfPin = 255;
     Amplifier _amp = AMP_UNKNOWN;
-    uint16_t _lastTemperature = 0;
-
-    bool _useLm35 = false;
-
-    float _supplyVoltage = 5.5;
-    uint8_t _ntcResistance = 10; // K Ohms
-    float _ntcResistanceTemperature = 25 + 273.15;
-    uint8_t _ntcSeriesResistor = 10; // K Ohms
-    uint16_t _ntcBetaConstant = 3950;
-
-    float _lm35Constant = 10.0f / 1000;
-
+    float _lastTemperature = 0;
     Band _band;
     Button _buttonA;
     Button _buttonB;
@@ -89,13 +84,14 @@ private:
 
     FT62XXTouchScreen _touch = FT62XXTouchScreen(TFT_WIDTH, PIN_SDA, PIN_SCL);
 
-    uint8_t _adcIndexRfPowerForward;
-    uint8_t _adcIndexRfPowerReverse;
     float _interceptFwd;
     float _interceptRev;
-    float _inputPowerFactor;
+    float _inputInterceptFwd;
 
-    PCF8575 _pcf = PCF8575(ADDRESS_IO_EXPANDER);
-    ADS1115 _adsOutput = ADS1115(ADDRESS_ADC_OUTPUT_1);
-    ADS1115 _adsMain = ADS1115(ADDRESS_ADC_MAIN_BOARD);
+    MCP23017 _io = MCP23017(ADDRESS_IO_EXPANDER);
+    ADS1115 _adsOutputFwd = ADS1115(ADDRESS_ADC_OUTPUT_FWD);
+    ADS1115 _adsOutputRev = ADS1115(ADDRESS_ADC_OUTPUT_REV);
+
+    OneWire _oneWire = OneWire(PIN_TEMPERATURE);
+    DS18B20 _temperatureSensor = DS18B20(&_oneWire);
 };
