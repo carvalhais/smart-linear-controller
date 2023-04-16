@@ -55,9 +55,9 @@ struct Band
     uint32_t max;
     char *name;
     LowPassFilter lpf;
-    float interceptFwd;
-    float interceptRev;
-    float inputInterceptFwd;
+    float outputPowerFactorFwd;
+    float outputPowerFactorRev;
+    float inputPowerFactor;
 };
 
 enum Screens

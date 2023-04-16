@@ -30,4 +30,5 @@ private:
 	TFT_eSprite *_spr;
     uint8_t *_smallFont;
     uint8_t *_mediumFont;
+    uint8_t _lastFan;
 };

@@ -42,6 +42,11 @@ void Bottom::begin(uint32_t x, uint32_t y, uint32_t w, uint32_t h, TFT_eSPI *tft
     _spr->drawFastVLine(_meterWidth * 3, 0, sprHeight, TFT_DARKGREY);
     _spr->setTextColor(TFT_WHITE, _bgColor);
     _spr->pushSprite(_x, _y + _headerHeight + 1);
+
+    updateVolts(-1, TFT_DARKGREY);
+    updateAmperes(-1, TFT_DARKGREY);
+    updateGain(0);
+    updateFan(_lastFan);
 }
 
 void Bottom::drawSubHeader(const char *string, uint16_t x, uint16_t y, uint16_t w)
@@ -120,4 +125,5 @@ void Bottom::updateFan(uint8_t perc)
         snprintf(temp, sizeof(temp), "%d%%", perc);
     }
     setValue(temp, _meterWidth * 3, TFT_WHITE);
+    _lastFan = perc;
 }

@@ -144,36 +144,33 @@ void PowerSupplyScreen::loop()
     {
         bool poff = _mode < PowerSupplyMode::NORMAL;
 
-        if (_mode != _lastMode)
+        switch (_mode)
         {
-            _lastMode = _mode;
-            switch (_mode)
-            {
-            case PowerSupplyMode::NOT_STARTED:
-                setMode("FAILED TO START", TFT_WHITE);
-                break;
-            case PowerSupplyMode::STARTED:
-                setMode("STARTED", TFT_WHITE);
-                break;
-            case PowerSupplyMode::POWEROFF:
-                setMode("POWER OFF", TFT_WHITE);
-                break;
-            case PowerSupplyMode::NORMAL:
-                setMode("NORMAL OPERATION", TFT_WHITE);
-                break;
-            case PowerSupplyMode::RAMPING:
-                setMode("REACHING TARGET VOLTAGE", TFT_YELLOW);
-                break;
-            case PowerSupplyMode::WARNING:
-                setMode("WARNING", TFT_YELLOW);
-                break;
-            case PowerSupplyMode::ALARM:
-                setMode("ALARM", TFT_RED);
-                break;
-            default:
-                break;
-            }
+        case PowerSupplyMode::NOT_STARTED:
+            setMode("FAILED TO START", TFT_WHITE);
+            break;
+        case PowerSupplyMode::STARTED:
+            setMode("STARTED", TFT_WHITE);
+            break;
+        case PowerSupplyMode::POWEROFF:
+            setMode("POWER OFF", TFT_WHITE);
+            break;
+        case PowerSupplyMode::NORMAL:
+            setMode("NORMAL OPERATION", TFT_WHITE);
+            break;
+        case PowerSupplyMode::RAMPING:
+            setMode("REACHING TARGET VOLTAGE", TFT_YELLOW);
+            break;
+        case PowerSupplyMode::WARNING:
+            setMode("WARNING", TFT_YELLOW);
+            break;
+        case PowerSupplyMode::ALARM:
+            setMode("ALARM", TFT_RED);
+            break;
+        default:
+            break;
         }
+
         displayValue(0, poff ? -1 : _outputVoltage, 1);
         displayValue(1, poff ? -1 : _inputVoltage, 0);
         displayValue(2, poff ? -1 : _intakeTemperature, 0);

@@ -4,7 +4,7 @@ LatchingRelay::LatchingRelay()
 {
 }
 
-void LatchingRelay::begin(MCP23017 *io, int pinTx, int pinRx)
+void LatchingRelay::begin(ErriezMCP23017 *io, int pinTx, int pinRx)
 {
     _pinTx = pinTx;
     _pinRx = pinRx;

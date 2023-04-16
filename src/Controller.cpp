@@ -22,8 +22,9 @@ void Controller::onOutputPower(float forwardWatts, float reverseWatts)
         return;
     if (forwardWatts > 0.0f || _outputPowerAccumulator > 0.0f)
     {
-        float alpha = forwardWatts > _outputPowerAccumulator ? 1.0f : 0.1f; // 1 = fast 0.2 = slow
+        float alpha = forwardWatts > _outputPowerAccumulator ? 1.0f : 0.2f; // 1 = fast 0.2 = slow
         _outputPowerAccumulator += alpha * (forwardWatts - _outputPowerAccumulator);
+
         if (_outputPowerAccumulator < 1.0f)
             _outputPowerAccumulator = 0.0f;
 
@@ -45,11 +46,12 @@ void Controller::onInputPower(float forwardWatts)
 {
     if (!_started)
         return;
-    _timerTimeout = millis() + SCREEN_TIMEOUT;
 
     if (forwardWatts > 0.1f)
     {
+        _timerTimeout = millis() + SCREEN_TIMEOUT;
         _timerRfInput = millis() + 100;
+
         if (!_txStateRF)
         {
             _txStateRF = true;
@@ -57,14 +59,11 @@ void Controller::onInputPower(float forwardWatts)
         }
     }
 
-    if (forwardWatts > 0.0f || _inputPowerAccumulator > 0.0f)
+    if (forwardWatts > 0.1f || _inputPowerAccumulator > 0.0f)
     {
         // DBG("Controller::onInputPower: %.1fW [Core %d]\n", forwardWatts, xPortGetCoreID());
-
-        float alpha = forwardWatts > _inputPowerAccumulator ? 1.0f : 0.1f; // 1 = fast 0.2 = slow
+        float alpha = forwardWatts > _inputPowerAccumulator ? 0.5f : 0.2f; // 1 = fast 0.2 = slow
         _inputPowerAccumulator += alpha * (forwardWatts - _inputPowerAccumulator);
-        if (_inputPowerAccumulator < 0.1f)
-            _inputPowerAccumulator = 0.0f;
 
         _ui.updateInputPower(_inputPowerAccumulator);
     }
@@ -92,7 +91,8 @@ void Controller::onFrequencyChanged(uint32_t frequency, uint8_t modulation, uint
 {
     _timerTimeout = millis() + SCREEN_TIMEOUT;
 
-    // DBG("Controller::onFrequencyChanged [Core %d]\n", xPortGetCoreID());
+    DBG("Controller::onFrequencyChanged [Core %d]\n", xPortGetCoreID());
+
     uint32_t mainfreq = frequency / 1000;
 
     if (mainfreq != _lastFreq)
@@ -143,7 +143,6 @@ void Controller::onMeterUpdated(uint8_t type, uint8_t rawValue)
         value = value / 150.0 * 100;
         break;
     }
-    //_analog.update(value);
     // DBG("Controller::onMeterUpdate: Type: %d, Raw: %d, Value: %d \n", type, rawValue, value);
 }
 

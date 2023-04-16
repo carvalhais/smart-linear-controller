@@ -159,13 +159,16 @@ void BargraphBase::loop()
       }
     }
     _lastPeakPosition = peakPosition;
-    _peakValue -= (0.005 * _peakIncrement);
+    _peakValue -= (0.002 * _peakIncrement);
     if (_peakValue < _value)
     {
       _peakValue = _value;
     }
     _peakIncrement++;
+
+
   }
+
   if (updateScreen)
   {
     _spr->pushSprite(_x + 2, _y + _laneY);
@@ -210,6 +213,12 @@ void BargraphBase::drawScale()
     drawBar(i, _barColorOff);
   }
   _spr->pushSprite(_x + 2, _y + _laneY);
+
+	_lastValue = -1; 
+	_peakValue = 0;
+	_lastValuePosition = 0;
+	_lastPeakPosition = 0;
+
 }
 
 void BargraphBase::drawScaleItem(float value, char *label)

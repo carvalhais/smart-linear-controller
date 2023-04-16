@@ -33,7 +33,7 @@ Diag HardwareLayer::begin()
 {
     Wire.begin(PIN_SDA, PIN_SCL, (uint32_t)400E3);
 
-    if (!_io.isConnected()) //
+    if (!_io.begin(true)) //
     {
         DBG("MCP23017: Fail (IO Expander) [Core %d]\n", xPortGetCoreID());
     }
@@ -43,20 +43,8 @@ Diag HardwareLayer::begin()
         DBG("MCP23017: OK (IO expander) [Core %d]\n", xPortGetCoreID());
         _diag.mainExpander = true;
         _vhfRelay.begin(&_io, IO_PIN_PULSE_TX, IO_PIN_PULSE_RX);
-        _io.pinMode16(0x00);
+        _io.setPortDirection(0xFFFF);
     }
-
-    // float inputFwdVoltage = readVoltage(PIN_INPUT_FWD);
-
-    // if (inputFwdVoltage < 1.0) //
-    // {
-    //     DBG("Input FW: Fail (Main Board) (%.2f) [Core %d]\n", inputFwdVoltage, xPortGetCoreID());
-    // }
-    // else
-    // {
-    //     DBG("Input FW: OK (Main Board) (%.2f) [Core %d]\n", inputFwdVoltage, xPortGetCoreID());
-    //     _diag.inputBoard = true;
-    // }
 
     if (!_adsOutputFwd.isConnected()) //
     {
@@ -81,7 +69,7 @@ Diag HardwareLayer::begin()
         _adsOutputRev.begin();
         DBG("ADS1X15: OK (REV RF Sensor) [Core %d]\n", xPortGetCoreID());
         _diag.rfAdcRev = true;
-        _adsOutputRev.setGain(1);
+        _adsOutputRev.setGain(2);
         _adsOutputRev.setDataRate(7);
         _adsOutputRev.setMode(0);
     }
@@ -121,8 +109,6 @@ Diag HardwareLayer::begin()
         _diagCallback(_diag);
     }
 
-    // pinMode(PIN_STANDBY, OUTPUT);
-
 #ifdef PIN_FAN_SPEED
     pinMode(PIN_FAN_SPEED, OUTPUT);
     ledcSetup(FAN_PWM_CHANNEL, 20, 8);
@@ -160,7 +146,6 @@ void HardwareLayer::loop()
         if (_diag.rfAdcFwd && _diag.rfAdcRev)
         {
             readInputPower();
-            // timer_t start = millis();
             readOutputPower();
         }
         _timer1 = millis() + 10;
@@ -177,15 +162,11 @@ void HardwareLayer::loop()
             }
         }
         _timer2 = millis() + 1000;
-
-        // float volts1 = _adsOutputFwd.getValue() * _adsOutputFwd.toVoltage(1);
-        // float volts2 = _adsOutputRev.getValue() * _adsOutputRev.toVoltage(1);
-        // DBG("FWD: %.4f, REV: %.4f\n", volts1, volts2);
-
-        // float volts = readVoltageSamples(PIN_INPUT_FWD, 20);
-        // DBG("Input Volts: %.4f\n", volts);
+        // float volts1 = (_adsOutputFwd.getValue() * _adsOutputFwd.toVoltage(1));
+        // float volts2 = (_adsOutputRev.getValue() * _adsOutputRev.toVoltage(1));
+        // float volts3 = (readVoltageSamples(PIN_INPUT_FWD, 10));
+        // DBG("Voltage Readings: Output [FWD: %.4f, REV: %.4f], Input [Fwd: %.4f]\n", volts1, volts2, volts3);
     }
-
     _vhfRelay.loop();
 
 #ifdef WT32SC01
@@ -321,11 +302,9 @@ void HardwareLayer::onBandChanged(uint32_t freq, Band band)
     _band = band;
     Amplifier amp = (freq > FREQ_VHF_AMP) ? AMP_VHF : AMP_HF;
 
-    _interceptFwd = band.interceptFwd;
-    _interceptRev = band.interceptRev;
-    _inputInterceptFwd = band.inputInterceptFwd;
-
-    DBG("ADC Intercept points: FWD: %.2f, REV: %.2f\n", _interceptFwd, _interceptRev);
+    _outputPowerFactorFwd = band.outputPowerFactorFwd;
+    _outputPowerFactorRev = band.outputPowerFactorRev;
+    _inputPowerFactor = band.inputPowerFactor;
 
     if (amp != _amp)
     {
@@ -354,6 +333,7 @@ void HardwareLayer::onTransmitChanged(bool state)
     }
     _io.digitalWrite(pinRelay, state);
     _io.digitalWrite(pinBias, state);
+    _txOn = state;
     DBG("TX %s: %s (IO PIN %d) [Core %d]\n", _amp == AMP_HF ? "HF" : "VHF", state ? "ON" : "OFF", pinRelay, xPortGetCoreID());
     // DBG("BIAS %s: %s (IO PIN %d) [Core %d]\n", _amp == AMP_HF ? "HF" : "VHF", state ? "ON" : "OFF", pinBias, xPortGetCoreID());
 }
@@ -364,17 +344,13 @@ bool HardwareLayer::deviceReady(uint8_t address)
     return Wire.endTransmission() == 0;
 }
 
-float HardwareLayer::readRfPower(bool forward, float intercept)
+float HardwareLayer::readRfPower(ADS1115 *adc, float factor)
 {
-    uint16_t raw = forward ? _adsOutputFwd.getValue() : _adsOutputRev.getValue();
-    //_adsOutput.requestADC(index); // request on pin 0
-    // uint16_t raw = _adsOutput.getValue();
-
-    if (raw > 1000)
+    float volts = (adc->getValue() * adc->toVoltage(1));
+    if (volts > 0.1f)
     {
-        float volts = raw * (forward ? _adsOutputFwd.toVoltage(1) : _adsOutputRev.toVoltage(1)); // Convert the ADC result to volts in vout
-        float powerdB = (ADC_SLOPE * volts) - intercept;                                         // convert the voltage to dBm in 50 ohms
-        float powerW = pow(10.0, (powerdB - 30) / 10.0);                                         // convert dBm to watts
+        // Convert the ADC result to volts in vout
+        float powerW = pow((volts * factor), 2);
         // DBG("PWR: %s, V: %.4f, W: %.1f\n", forward ? "F" : "R", volts, powerW);
         return powerW;
     }
@@ -386,16 +362,22 @@ float HardwareLayer::readRfPower(bool forward, float intercept)
 
 void HardwareLayer::readOutputPower()
 {
-    // DBG("readOutputPower\n");
-    float fwdPwr = readRfPower(true, _interceptFwd);
-
-    if (fwdPwr > .1f)
+    float fwdVolts = _adsOutputFwd.getValue() * _adsOutputFwd.toVoltage(1);
+    if (fwdVolts > 0.1f)
     {
-        float revPwr = readRfPower(false, _interceptRev);
-        // fwdPwr -= revPwr;
-        //  DBG("PWR FWD %.2f REF %.2f\n", fwdPwr, revPwr);
-        if (_outputPowerCallback)
-            _outputPowerCallback(fwdPwr, revPwr);
+        float fwdPwr = pow(fwdVolts * _outputPowerFactorFwd, 2);
+        // DBG("Output: Volts %.4f, Watts: %.2f\n", fwdVolts, fwdPwr);
+
+        if (fwdPwr > (_lastOutputPower * 1.2f) || millis() > _timerPowerReading)
+        {
+            _lastOutputPower = fwdPwr;
+            _timerPowerReading = millis() + 200;
+            
+            float revVolts = _adsOutputRev.getValue() * _adsOutputRev.toVoltage(1);
+            float revPwr = pow(revVolts * _outputPowerFactorRev, 2);
+            if (_outputPowerCallback)
+                _outputPowerCallback(fwdPwr, revPwr);
+        }
     }
     else
     {
@@ -406,13 +388,12 @@ void HardwareLayer::readOutputPower()
 
 void HardwareLayer::readInputPower()
 {
-    float volts = readVoltageSamples(PIN_INPUT_FWD, 20);
-    if (volts > 1.5)
+    float volts = readVoltageSamples(PIN_INPUT_FWD, 10);
+
+    if (volts > 0.5)
     {
-        float powerdB = (ADC_SLOPE * volts) - _inputInterceptFwd; // convert the voltage to dBm in 50 ohms
-        float powerW = pow(10.0, (powerdB - 30) / 10.0);          // convert dBm to watts
-        DBG("Input Volts %.4f, Watts: %.2f\n", volts, powerW);
-        //  float powerW = pow((volts / _inputInterceptFwd), 2);
+        float powerW = pow((volts * _inputPowerFactor), 2);
+        // DBG("Input Volts %.4f, Watts: %.2f\n", volts, powerW);
         if (_inputPowerCallback)
         {
             _inputPowerCallback(powerW);
@@ -467,7 +448,7 @@ void HardwareLayer::setFanSpeed(uint8_t percent)
         uint32_t duty = 0;
         if (percent > 0)
         {
-            duty = map(percent, 0, 100, 50, 255);
+            duty = map(percent, 0, 100, 60, 255);
         }
         // DBG("FAN: %d%%, Duty: %d\n", percent, duty);
         ledcWrite(FAN_PWM_CHANNEL, duty);

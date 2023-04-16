@@ -10,7 +10,7 @@
 #include <ADS1X15.h>
 #include <DS18B20.h>
 #include <OneWire.h>
-#include <MCP23017.h>
+#include <ErriezMCP23017.h>
 
 class HardwareLayer
 {
@@ -40,7 +40,7 @@ public:
     static void task(void *pvParameters);
     void setFanSpeed(uint8_t duty);
     void setBacklightLevel(uint8_t duty);
-
+    
 private:
     void setAmplifier(Amplifier amp);
     void setLowPassFilter(LowPassFilter lpf);
@@ -55,10 +55,12 @@ private:
     TemperatureCb _temperatureCallback;
     TouchCb _touchCallback;
 
+    bool _txOn = false;
+
     void readOutputPower();
     void readInputPower();
 
-    float readRfPower(bool forward, float intercept);
+    float readRfPower(ADS1115 *adc, float factor);
 
     bool deviceReady(uint8_t address);
     void doHigh();
@@ -67,7 +69,7 @@ private:
 
     volatile time_t _timer1;
     volatile time_t _timer2;
-    volatile time_t _timer3;
+    volatile time_t _timerPowerReading;
     volatile bool state;
 
     LatchingRelay _vhfRelay;
@@ -84,11 +86,14 @@ private:
 
     FT62XXTouchScreen _touch = FT62XXTouchScreen(TFT_WIDTH, PIN_SDA, PIN_SCL);
 
-    float _interceptFwd;
-    float _interceptRev;
-    float _inputInterceptFwd;
+    float _outputPowerFactorFwd;
+    float _outputPowerFactorRev;
+    float _inputPowerFactor;
 
-    MCP23017 _io = MCP23017(ADDRESS_IO_EXPANDER);
+
+    float _lastOutputPower;
+
+    ErriezMCP23017 _io = ErriezMCP23017(ADDRESS_IO_EXPANDER);
     ADS1115 _adsOutputFwd = ADS1115(ADDRESS_ADC_OUTPUT_FWD);
     ADS1115 _adsOutputRev = ADS1115(ADDRESS_ADC_OUTPUT_REV);
 

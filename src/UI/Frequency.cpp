@@ -135,6 +135,7 @@ void Frequency::loop()
             {
                 modeText = (char *)"-";
             }
+            DBG("Mode changed: ID: %d, Text: %s", _modulation, modeText);
             _btnMode.setText(TFT_WHITE, modeText);
             _btnMode.update();
             _modChanged = false;

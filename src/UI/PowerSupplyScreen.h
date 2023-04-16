@@ -36,7 +36,6 @@ private:
     uint8_t _meterHeight = 40;
 
     PowerSupplyMode _mode = PowerSupplyMode::NOT_STARTED;
-    PowerSupplyMode _lastMode = PowerSupplyMode::NOT_STARTED;
     int _intakeTemperature;
     float _current;
     float _outputVoltage;

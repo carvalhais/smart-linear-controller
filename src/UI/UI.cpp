@@ -94,6 +94,8 @@ void UI::nextScreen()
 
 void UI::loadScreen(Screens screen)
 {
+    _tft.setTextColor(TFT_WHITE, TFT_BLACK);
+
     if (screen != _activeScreen)
     {
         unloadScreen(_activeScreen);
@@ -109,7 +111,7 @@ void UI::loadScreen(Screens screen)
     case Screens::PSU:
         DBG("Active Screen: PSU\n");
         _screenPtr = &_psu;
-        _psu.begin(_x, _y, _w, _h, &_tft, _microFont, _smallFont, _mediumFont, _largeFont);
+        _psu.begin(_x, _y, _w, _h, &_tft, _microFont, _smallFont, _semiLarge, _largeFont);
         break;
     case Screens::STANDBY:
         DBG("Active Screen: STANDBY\n");

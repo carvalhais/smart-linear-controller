@@ -36,4 +36,6 @@ private:
     TFT_eSPI *_tft;
     uint8_t *_smallFont;
     uint8_t *_mediumFont;
+
+    float _lastTemperature;
 };

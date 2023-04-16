@@ -44,11 +44,6 @@ void MainScreen::begin(uint16_t x,
     // "Digital" meters at the bottom
     _bottom.begin(x, y + height + metersHeight + 1, w, 40, _tft, _microFont, _mediumFont);
 
-    _bottom.updateVolts(-1, TFT_DARKGREY);
-    _bottom.updateAmperes(-1, TFT_DARKGREY);
-    _bottom.updateGain(0);
-    _bottom.updateFan(0);
-
     _btnBypass.begin(_tft, _mediumFont, _x + 42, _y + _h - 53, 80, 40, 3);
     _btnBypass.setText(TFT_WHITE, "BYPASS");
 
