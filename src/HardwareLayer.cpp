@@ -162,6 +162,7 @@ void HardwareLayer::loop()
             }
         }
         _timer2 = millis() + 1000;
+
         // float volts1 = (_adsOutputFwd.getValue() * _adsOutputFwd.toVoltage(1));
         // float volts2 = (_adsOutputRev.getValue() * _adsOutputRev.toVoltage(1));
         // float volts3 = (readVoltageSamples(PIN_INPUT_FWD, 10));
@@ -372,9 +373,10 @@ void HardwareLayer::readOutputPower()
         {
             _lastOutputPower = fwdPwr;
             _timerPowerReading = millis() + 200;
-            
+
             float revVolts = _adsOutputRev.getValue() * _adsOutputRev.toVoltage(1);
             float revPwr = pow(revVolts * _outputPowerFactorRev, 2);
+            
             if (_outputPowerCallback)
                 _outputPowerCallback(fwdPwr, revPwr);
         }
@@ -390,7 +392,7 @@ void HardwareLayer::readInputPower()
 {
     float volts = readVoltageSamples(PIN_INPUT_FWD, 10);
 
-    if (volts > 0.5)
+    if (volts > 0.2)
     {
         float powerW = pow((volts * _inputPowerFactor), 2);
         // DBG("Input Volts %.4f, Watts: %.2f\n", volts, powerW);

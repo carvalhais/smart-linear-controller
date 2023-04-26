@@ -31,10 +31,7 @@ void Meters::begin(uint32_t x, uint32_t y, uint32_t w, uint32_t h, TFT_eSPI *tft
 
     _meterTemperature.begin(_x + t1 + 3, _y + paddingTop, t2 - 6, meterHeight, tft, _smallFont, _mediumFont, "TEMPERATURE (oC)");
     _meterTemperature.drawScale();
-    if (_lastTemperature > 0)
-    {
-        _meterTemperature.setValue(_lastTemperature);
-    }
+    _meterTemperature.setValue(_lastTemperature);
     _meterOutputPower.begin(_x + 3, _y + bandHeight + paddingTop, t1 - 6, meterHeight, tft, _smallFont, _mediumFont, "OUTPUT POWER (W)");
     _meterOutputPower.setInitialScale(10);
     _meterOutputPower.drawScale();

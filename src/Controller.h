@@ -45,6 +45,7 @@ private:
     void start();
     bool transmitEnabled();
     void setBypassState();
+    void updateScreenTimeout();
 
     float _outputPowerAccumulator = 0;
     float _inputPowerAccumulator = 0;
@@ -160,7 +161,7 @@ private:
             lpf : BAND_12_10M,
             outputPowerFactorFwd : 12.3f,
             outputPowerFactorRev : 24.0f,
-            inputPowerFactor: 1.48f
+            inputPowerFactor: 1.50f
         },
         {
             min : 28000,
@@ -169,7 +170,7 @@ private:
             lpf : BAND_12_10M,
             outputPowerFactorFwd : 12.3f,
             outputPowerFactorRev : 24.0f,
-            inputPowerFactor: 1.48f
+            inputPowerFactor: 1.50f
         },
         {
             min : 50000,
@@ -209,9 +210,9 @@ private:
     volatile timer_t _timerRfInput;
     uint8_t _counter;
     time_t _nextTouch;
+    bool _voltageSet;
 
     volatile bool _started = false;
-
     volatile bool _connected = false;
     volatile uint32_t _lastFreq = 0;
     volatile bool _prevScreenOff = false;
@@ -222,4 +223,6 @@ private:
     volatile bool _bypassEnabled = false;
     volatile bool _psuAlarm = false;
     volatile bool _overTemperature = false;
+
+
 };

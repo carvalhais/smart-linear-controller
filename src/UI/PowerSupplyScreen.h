@@ -3,6 +3,7 @@
 #include "CAN/CANTypes.h"
 #include "UI/Bargraph/BargraphAmperes.h"
 #include "ScreenBase.h"
+#include "SimpleMeter.h"
 
 class PowerSupplyScreen : public ScreenBase
 {
@@ -10,18 +11,16 @@ public:
     PowerSupplyScreen();
 
     void begin(uint16_t x, uint16_t y, uint16_t w, uint16_t h, TFT_eSPI *tft, const uint8_t microFont[], const uint8_t smallFont[], const uint8_t mediumFont[], const uint8_t largeFont[]);
-    void drawSubHeader(const char *string, uint16_t x, uint16_t y, uint16_t w);
     void setStatus(PowerSupplyMode mode, int intTemp, int outTemp, float current, float outVoltage, int inputVoltage);
+    void updateRFOutputPower(float power);
     void end();
     void loop();
 
 private:
     void setMode(const char *mode, uint32_t color);
-    void displayValue(uint8_t offset, float value, uint8_t digits);
-
     time_t _next = millis();
     TFT_eSPI *_tft;
-    TFT_eSprite *_spr;
+
     BargraphAmperes _bargraph;
     uint8_t *_microFont;
     uint8_t *_smallFont;
@@ -36,10 +35,23 @@ private:
     uint8_t _meterHeight = 40;
 
     PowerSupplyMode _mode = PowerSupplyMode::NOT_STARTED;
+    PowerSupplyMode _lastMode = PowerSupplyMode::NOT_STARTED;
     int _intakeTemperature;
     float _current;
     float _outputVoltage;
     int _inputVoltage;
     int _outputTemperature;
     bool _update = false;
+    float _rfOutputPower;
+    bool _init = false;
+
+    SimpleMeter _meterDCOut;
+    SimpleMeter _meterACIn;
+    SimpleMeter _meterTempIn;
+    SimpleMeter _meterTempOut;
+    SimpleMeter _meterCurrent;
+    SimpleMeter _meterDCPower;
+    SimpleMeter _meterRFPower;
+    SimpleMeter _meterEfficiency;
+
 };

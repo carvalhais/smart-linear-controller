@@ -63,7 +63,8 @@
 #define BUTTON_B 38
 #define BUTTON_C 37
 
-#define SCREEN_TIMEOUT 300000 // 5 minutos
+#define SCREEN_TIMEOUT_CONNECTED 1800000 // 30 minutes
+#define SCREEN_TIMEOUT_DISCONNECTED 300000 // 5 minutes
 #define DEFAULT_BACKLIGHT_LEVEL 40
 
 #ifdef DEBUG

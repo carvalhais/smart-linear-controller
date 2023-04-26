@@ -47,7 +47,7 @@ void MainScreen::begin(uint16_t x,
     _btnBypass.begin(_tft, _mediumFont, _x + 42, _y + _h - 53, 80, 40, 3);
     _btnBypass.setText(TFT_WHITE, "BYPASS");
 
-    setByPassState(false);
+    setByPassState(_lastByPassState);
 
     TouchRegion r1;
     r1.x = _x;
@@ -125,13 +125,13 @@ void MainScreen::setByPassState(bool state)
     }
     _btnBypass.update();
     _freq.setTransmitEnabled(!state);
+    _lastByPassState = state;
 }
 
 void MainScreen::loop()
 {
     if (_update)
     {
-
         if (_mode < PowerSupplyMode::NORMAL)
         {
             _bottom.updateVolts(-1, TFT_DARKGREY);

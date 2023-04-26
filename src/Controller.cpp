@@ -30,9 +30,13 @@ void Controller::onOutputPower(float forwardWatts, float reverseWatts)
 
         _ui.updateOutputPower(_outputPowerAccumulator, reverseWatts);
 
-        float gain = _inputPowerAccumulator == 0.0f ? 0.0f : 10 * log(_outputPowerAccumulator / _inputPowerAccumulator);
-
-        // DBG("Controller::onOutputPower: Output: %.4f, Out Avg %.4fW, In Avg: %.4fW, Gain: %.1fdB [Core %d]\n", forwardWatts, _outputPowerAccumulator, _inputPowerAccumulator, gain, xPortGetCoreID());
+        float gain = 0;
+        if (_inputPowerAccumulator > 0 && _outputPowerAccumulator > 0)
+        {
+            gain = (10.0 * log10(_outputPowerAccumulator / _inputPowerAccumulator));
+            float ratio = _outputPowerAccumulator / _inputPowerAccumulator;
+            // DBG("Controller::onOutputPower: Out Avg %.4fW, In Avg: %.4fW, Gain: %.1fdB, Ratio: %.4f\n", _outputPowerAccumulator, _inputPowerAccumulator, gain, ratio);
+        }
 
         if (gain != _powerGainDB)
         {
@@ -49,7 +53,7 @@ void Controller::onInputPower(float forwardWatts)
 
     if (forwardWatts > 0.1f)
     {
-        _timerTimeout = millis() + SCREEN_TIMEOUT;
+        updateScreenTimeout();
         _timerRfInput = millis() + 100;
 
         if (!_txStateRF)
@@ -87,14 +91,23 @@ void Controller::onButtonPressed(int button, bool longPress)
     }
 }
 
+void Controller::updateScreenTimeout()
+{
+    if (_connected)
+    {
+        _timerTimeout = millis() + SCREEN_TIMEOUT_CONNECTED;
+    }
+    else
+    {
+        _timerTimeout = millis() + SCREEN_TIMEOUT_DISCONNECTED;
+    }
+}
+
 void Controller::onFrequencyChanged(uint32_t frequency, uint8_t modulation, uint8_t filter, bool txState)
 {
-    _timerTimeout = millis() + SCREEN_TIMEOUT;
-
-    DBG("Controller::onFrequencyChanged [Core %d]\n", xPortGetCoreID());
-
+    updateScreenTimeout();
+    // DBG("Controller::onFrequencyChanged [Core %d]\n", xPortGetCoreID());
     uint32_t mainfreq = frequency / 1000;
-
     if (mainfreq != _lastFreq)
     {
         Band band = bandLookup(mainfreq);
@@ -126,10 +139,17 @@ void Controller::onClientConnected(uint8_t macAddress[6])
 {
     DBG("Controller::onClientConnected [Core %d]\n", xPortGetCoreID());
     _connected = true;
+    updateScreenTimeout();
 }
 
 void Controller::onPowerSupplyStatus(PowerSupplyMode mode, int intTemp, int outTemp, float current, float outVoltage, int inputVoltage)
 {
+    if (!_voltageSet && mode == PowerSupplyMode::NORMAL)
+    {
+        // _psu.setStartupVoltage(50);
+        // _psu.setOperationalVoltageAndCurrent(50, 18);
+        // _voltageSet = true;
+    }
     _psuAlarm = mode != PowerSupplyMode::NORMAL;
     _ui.updatePowerSupply(mode, intTemp, outTemp, current, outVoltage, inputVoltage);
 }
@@ -180,7 +200,7 @@ void Controller::onTemperatureUpdated(float temperature)
 
 void Controller::onTouch(TouchPoint tp)
 {
-    _timerTimeout = millis() + SCREEN_TIMEOUT;
+    updateScreenTimeout();
 
     if (_prevScreenOff)
         return;
@@ -236,8 +256,6 @@ void Controller::setBypassState()
 void Controller::start()
 {
     DBG("Controller::start() [Core %d]\n", xPortGetCoreID());
-    _timerTimeout = millis() + SCREEN_TIMEOUT;
-
     if (_rig.initializeRig())
     {
         DBG("Controller::start() Transceiver detected successfully\n");
@@ -259,6 +277,7 @@ void Controller::onClientDisconnected()
     _lastFanSpeed = 0;
     _hal.setFanSpeed(0);
     _hal.onPowerSupplyChanged(false);
+    updateScreenTimeout();
 }
 
 void Controller::loop()
@@ -295,13 +314,9 @@ void Controller::loop()
 void Controller::begin()
 {
     DBG("Controller::begin [Core %d]\n", xPortGetCoreID());
-
-    _timerTimeout = millis() + SCREEN_TIMEOUT;
-
+    updateScreenTimeout();
     _preferences.begin("settings", false);
-
     _ui.begin();
-
     /*************** RIG BEGIN */
     auto cbConnected = std::bind(&Controller::onClientConnected,
                                  this,

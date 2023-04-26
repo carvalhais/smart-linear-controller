@@ -136,9 +136,14 @@ void UI::updatePowerSupply(PowerSupplyMode mode, int intTemp, int outTemp, float
 
 void UI::updateOutputPower(float forwardWatts, float reverseWatts)
 {
-    if (_activeScreen == Screens::MAIN)
+    switch (_activeScreen)
     {
+    case Screens::MAIN:
         _main.updateOutputPower(forwardWatts, reverseWatts);
+        break;
+    case Screens::PSU:
+        _psu.updateRFOutputPower(forwardWatts);
+        break;
     }
 }
 

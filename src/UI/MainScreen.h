@@ -55,6 +55,8 @@ private:
     GradientButton _btnBypass;
     GradientButton _btnPowerOff;
 
+    bool _lastByPassState = false;
+
     PowerSupplyMode _mode = PowerSupplyMode::NOT_STARTED;
     int _intakeTemperature;
     float _current;

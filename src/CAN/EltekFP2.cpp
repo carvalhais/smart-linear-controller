@@ -69,7 +69,7 @@ void EltekFP2::processStatusMessage(uint32_t rxID, uint8_t len, uint8_t rxBuf[])
     if (rxID == 0x05014010)
     {
         currentMode = PowerSupplyMode::RAMPING;
-        DBG("EltekFP2: Currently in walk in (voltage ramping up)\n");
+        //DBG("EltekFP2: Currently in walk in (voltage ramping up)\n");
     }
 
     bool hasWarning = rxID == 0x05014008;
@@ -93,7 +93,7 @@ void EltekFP2::processStatusMessage(uint32_t rxID, uint8_t len, uint8_t rxBuf[])
     if (_mode != currentMode || _outputVoltage != outputVoltage || _current != current)
     {
         // DBG("EltekFP2: Someting changed, firing event\n");
-        if (_statusCb)
+        if (_statusCb && outputVoltage < 100) // sanity check
         {
             _statusCb(currentMode, intakeTemperature, outputTemperature, current, outputVoltage, inputVoltage);
         }
@@ -113,7 +113,7 @@ void EltekFP2::processWarningOrAlarmMessage(uint32_t rxID, uint8_t len, uint8_t 
         return;
 
     bool isWarning = rxBuf[1] == 0x04;
-    DBG("EltekFP2: %s: ", isWarning ? "Warning" : "Alarm");
+    //DBG("EltekFP2: %s: ", isWarning ? "Warning" : "Alarm");
 
     uint8_t alarms0 = rxBuf[3];
     uint8_t alarms1 = rxBuf[4];
@@ -122,15 +122,15 @@ void EltekFP2::processWarningOrAlarmMessage(uint32_t rxID, uint8_t len, uint8_t 
     {
         if (alarms0 & (1 << i))
         {
-            DBG(" %s", _alarms0Strings[i]);
+            //DBG(" %s", _alarms0Strings[i]);
         }
 
         if (alarms1 & (1 << i))
         {
-            DBG(" %s", _alarms1Strings[i]);
+            //DBG(" %s", _alarms1Strings[i]);
         }
     }
-    DBG("\n");
+    //DBG("\n");
 }
 
 void EltekFP2::onStatusCallback(PowerSupplyStatusCb cb)

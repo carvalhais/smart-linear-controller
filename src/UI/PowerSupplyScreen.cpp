@@ -4,13 +4,6 @@ PowerSupplyScreen::PowerSupplyScreen()
 {
 }
 
-void PowerSupplyScreen::drawSubHeader(const char *string, uint16_t x, uint16_t y, uint16_t w)
-{
-    _tft->drawFastHLine(x, y, w, TFT_DARKGREY);
-    _tft->drawString(string, x + (w / 2), y + (_headerHeight / 2) + 2, 1);
-    _tft->drawFastHLine(x, y + _headerHeight, w, TFT_DARKGREY);
-}
-
 void PowerSupplyScreen::begin(uint16_t x, uint16_t y, uint16_t w, uint16_t h, TFT_eSPI *tft, const uint8_t microFont[], const uint8_t smallFont[], const uint8_t mediumFont[], const uint8_t largeFont[])
 {
     _x = x;
@@ -24,55 +17,43 @@ void PowerSupplyScreen::begin(uint16_t x, uint16_t y, uint16_t w, uint16_t h, TF
     _largeFont = (uint8_t *)largeFont;
 
     _tft->fillRect(_x, _y, _w, _h, TFT_BLACK);
-
     _meterWidth = _w / 4;
-
     _tft->setTextDatum(TL_DATUM);
     _tft->loadFont(_smallFont);
     _tft->drawCentreString("POWER SUPPLY MONITOR", x + (w / 2), y + 6, 1);
     _tft->drawFastHLine(_x, _y + _headerHeight, w, TFT_DARKGREY);
-
-    //_tft->fillRect(0, 0, _w, 80, TFT_NAVY);
     _tft->loadFont(_smallFont);
     _tft->drawString("Status: ", _x + (_meterWidth - 55), _y + _headerHeight + 5, 1);
     _tft->drawFastVLine(_x + _meterWidth, _y + _headerHeight, _headerHeight, TFT_DARKGREY);
+    _tft->setTextDatum(MC_DATUM);
 
     uint8_t y2 = _y + (_headerHeight * 2);
 
-    _tft->drawFastHLine(_x, y2, _w, TFT_DARKGREY);
-    _tft->drawFastVLine(_x + _meterWidth, y2, _headerHeight, TFT_DARKGREY);
-    _tft->drawFastVLine(_x + _meterWidth * 2, y2, _headerHeight, TFT_DARKGREY);
-    _tft->drawFastVLine(_x + _meterWidth * 3, y2, _headerHeight, TFT_DARKGREY);
-    _tft->drawFastHLine(_x, y2 + _h - 1, w, TFT_DARKGREY);
-    _tft->setTextDatum(MC_DATUM);
+    _meterDCOut.begin("DC OUT (V)", _x, y2, _meterWidth, _headerHeight, _meterHeight, _tft, _smallFont, _largeFont);
+    _meterACIn.begin("AC IN (V)", _x + _meterWidth, y2, _meterWidth, _headerHeight, _meterHeight, _tft, _smallFont, _largeFont);
+    _meterTempIn.begin("TEMP IN (C)", _x + (_meterWidth * 2), y2, _meterWidth, _headerHeight, _meterHeight, _tft, _smallFont, _largeFont);
+    _meterTempOut.begin("TEMP OUT (C)", _x + (_meterWidth * 3), y2, _meterWidth, _headerHeight, _meterHeight, _tft, _smallFont, _largeFont);
 
-    drawSubHeader("DC OUT", _x, y2, _meterWidth);
-    drawSubHeader("AC IN", _x + _meterWidth, y2, _meterWidth);
-    drawSubHeader("TEMP IN", _x + (_meterWidth * 2), y2, _meterWidth);
-    drawSubHeader("TEMP OUT", _x + (_meterWidth * 3), y2, _meterWidth);
+    uint16_t h2 = (_headerHeight + _meterHeight) * 2;
 
-    _tft->unloadFont();
+    _tft->drawFastVLine(_x + _meterWidth, y2, h2, TFT_DARKGREY);
+    _tft->drawFastVLine(_x + _meterWidth * 2, y2, h2, TFT_DARKGREY);
+    _tft->drawFastVLine(_x + _meterWidth * 3, y2, h2, TFT_DARKGREY);
 
-    _spr = new TFT_eSprite(_tft);
-    _spr->setColorDepth(8);
-    _spr->createSprite(_w, _meterHeight);
-    _spr->fillSprite(TFT_NAVY);
-    _spr->drawFastVLine(_meterWidth, 0, _meterHeight, TFT_DARKGREY);
-    _spr->drawFastVLine(_meterWidth * 2, 0, _meterHeight, TFT_DARKGREY);
-    _spr->drawFastVLine(_meterWidth * 3, 0, _meterHeight, TFT_DARKGREY);
-    _spr->drawFastHLine(0, _meterHeight - 1, _w, TFT_DARKGREY);
+    y2 += _headerHeight + _meterHeight;
 
-    _spr->setTextDatum(MC_DATUM);
-    _spr->loadFont(_largeFont);
-
-    _spr->pushSprite(_x, _y + (_headerHeight * 3) + 1);
+    _meterCurrent.begin("CURRENT (A)", _x, y2, _meterWidth, _headerHeight, _meterHeight, _tft, _smallFont, _largeFont);
+    _meterDCPower.begin("DC POWER (W)", _x + _meterWidth, y2, _meterWidth, _headerHeight, _meterHeight, _tft, _smallFont, _largeFont);
+    _meterRFPower.begin("RF POWER (W)", _x + (_meterWidth * 2), y2, _meterWidth, _headerHeight, _meterHeight, _tft, _smallFont, _largeFont);
+    _meterEfficiency.begin("EFFICIENCY (%)", _x + (_meterWidth * 3), y2, _meterWidth, _headerHeight, _meterHeight, _tft, _smallFont, _largeFont);
 
     setMode("POWER OFF", TFT_WHITE);
 
     uint16_t barWidth = 350;
-    _bargraph.begin(_x + ((_w - barWidth) / 2), _y + 123, barWidth, 60, tft, _microFont, _mediumFont, "OUTPUT CURRENT");
+    _bargraph.begin(_x + ((_w - barWidth) / 2), _h - 70, barWidth, 60, tft, _microFont, _mediumFont, "OUTPUT CURRENT");
     _bargraph.drawScale();
 
+    _lastMode = PowerSupplyMode::NOT_STARTED;
     _update = true;
     loop();
 
@@ -86,30 +67,30 @@ void PowerSupplyScreen::begin(uint16_t x, uint16_t y, uint16_t w, uint16_t h, TF
     _touchRegions = new TouchRegion[1];
     _touchRegions[0] = r1;
     _numTouchRegions = 1;
+
+    _init = true;
 }
 
 void PowerSupplyScreen::setStatus(PowerSupplyMode mode, int intTemp, int outTemp, float current, float outVoltage, int inputVoltage)
 {
     _mode = mode;
-
     _intakeTemperature = intTemp;
     _current = current;
     _outputVoltage = outVoltage;
     _inputVoltage = inputVoltage;
     _outputTemperature = outTemp;
+    _update = true;
+}
 
+void PowerSupplyScreen::updateRFOutputPower(float power)
+{
+    _rfOutputPower = power;
     _update = true;
 }
 
 void PowerSupplyScreen::end()
 {
-    if (_spr != nullptr && _spr->created())
-    {
-        _spr->unloadFont();
-        _spr->deleteSprite();
-        delete _spr;
-        _spr = nullptr;
-    }
+    _meterDCOut.end();
     _bargraph.end();
 }
 
@@ -123,61 +104,57 @@ void PowerSupplyScreen::setMode(const char *mode, uint32_t color)
     _tft->unloadFont();
 }
 
-void PowerSupplyScreen::displayValue(uint8_t position, float value, uint8_t digits)
-{
-    uint16_t offset = (_meterWidth * position) + 1;
-    _spr->fillRect(offset, 1, _meterWidth - 2, _meterHeight - 2, TFT_BLACK);
-
-    if (value == -1)
-    {
-        _spr->drawString("-", offset + (_meterWidth / 2), 20);
-    }
-    else
-    {
-        _spr->drawFloat(value, digits, offset + (_meterWidth / 2), 20);
-    }
-}
-
 void PowerSupplyScreen::loop()
 {
     if (_update)
     {
         bool poff = _mode < PowerSupplyMode::NORMAL;
 
-        switch (_mode)
+        if (_mode != _lastMode)
         {
-        case PowerSupplyMode::NOT_STARTED:
-            setMode("FAILED TO START", TFT_WHITE);
-            break;
-        case PowerSupplyMode::STARTED:
-            setMode("STARTED", TFT_WHITE);
-            break;
-        case PowerSupplyMode::POWEROFF:
-            setMode("POWER OFF", TFT_WHITE);
-            break;
-        case PowerSupplyMode::NORMAL:
-            setMode("NORMAL OPERATION", TFT_WHITE);
-            break;
-        case PowerSupplyMode::RAMPING:
-            setMode("REACHING TARGET VOLTAGE", TFT_YELLOW);
-            break;
-        case PowerSupplyMode::WARNING:
-            setMode("WARNING", TFT_YELLOW);
-            break;
-        case PowerSupplyMode::ALARM:
-            setMode("ALARM", TFT_RED);
-            break;
-        default:
-            break;
+            switch (_mode)
+            {
+            case PowerSupplyMode::NOT_STARTED:
+                setMode("FAILED TO START", TFT_WHITE);
+                break;
+            case PowerSupplyMode::STARTED:
+            case PowerSupplyMode::POWEROFF:
+                setMode("POWER OFF", TFT_WHITE);
+                break;
+            case PowerSupplyMode::NORMAL:
+                setMode("NORMAL OPERATION", TFT_WHITE);
+                break;
+            case PowerSupplyMode::RAMPING:
+                setMode("REACHING TARGET VOLTAGE", TFT_YELLOW);
+                break;
+            case PowerSupplyMode::WARNING:
+                setMode("WARNING", TFT_YELLOW);
+                break;
+            case PowerSupplyMode::ALARM:
+                setMode("ALARM", TFT_RED);
+                break;
+            default:
+                break;
+            }
+            _lastMode = _mode;
         }
 
-        displayValue(0, poff ? -1 : _outputVoltage, 1);
-        displayValue(1, poff ? -1 : _inputVoltage, 0);
-        displayValue(2, poff ? -1 : _intakeTemperature, 0);
-        displayValue(3, poff ? -1 : _outputTemperature, 0);
-        _spr->pushSprite(_x, _y + (_headerHeight * 3) + 1);
+        _meterDCOut.setValue(poff ? -1 : _outputVoltage, 1);
+        _meterACIn.setValue(poff ? -1 : _inputVoltage, 0);
+        _meterTempIn.setValue(poff ? -1 : _intakeTemperature, 0);
+        _meterTempOut.setValue(poff ? -1 : _outputTemperature, 0);
+
+        float dcPower = _current * _outputVoltage;
+        float efficiency = dcPower > 0 ? (_rfOutputPower / dcPower) * 100 : -1;
+        if (efficiency > 100)
+            efficiency = 0;
+
+        _meterCurrent.setValue(poff ? -1 : _current, 1);
+        _meterDCPower.setValue(poff ? -1 : dcPower, 0);
+        _meterRFPower.setValue(poff ? -1 : _rfOutputPower, 0);
+        _meterEfficiency.setValue(poff ? -1 : efficiency, 0);
+
         _bargraph.setValue(_current > 20 ? 20 : _current);
-        // DBG("Power Supply: %.2f\n", _outputVoltage);
         _update = false;
     }
     _bargraph.loop();
