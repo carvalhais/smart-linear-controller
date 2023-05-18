@@ -23,12 +23,21 @@ void Controller::onOutputPower(float forwardWatts, float reverseWatts)
     if (forwardWatts > 0.0f || _outputPowerAccumulator > 0.0f)
     {
         float alpha = forwardWatts > _outputPowerAccumulator ? 1.0f : 0.2f; // 1 = fast 0.2 = slow
+
         _outputPowerAccumulator += alpha * (forwardWatts - _outputPowerAccumulator);
+        _outputReverseAccumulator += alpha * (reverseWatts - _outputReverseAccumulator);
 
         if (_outputPowerAccumulator < 1.0f)
             _outputPowerAccumulator = 0.0f;
 
-        _ui.updateOutputPower(_outputPowerAccumulator, reverseWatts);
+        float swr = 0;
+        if (_outputPowerAccumulator > 0)
+        {
+            float ratio = _outputReverseAccumulator / _outputPowerAccumulator;
+            swr = (1 + ratio) / (1 - ratio);
+        }
+
+        _ui.updateOutputPower(_outputPowerAccumulator, _outputReverseAccumulator);
 
         float gain = 0;
         if (_inputPowerAccumulator > 0 && _outputPowerAccumulator > 0)
@@ -43,6 +52,8 @@ void Controller::onOutputPower(float forwardWatts, float reverseWatts)
             _powerGainDB = gain;
             _ui.updateGain(_powerGainDB);
         }
+
+        _sup.updateRfPower(_inputPowerAccumulator, _outputPowerAccumulator, swr, gain);
     }
 }
 
@@ -51,8 +62,15 @@ void Controller::onInputPower(float forwardWatts)
     if (!_started)
         return;
 
-    if (forwardWatts > 0.1f)
+    if (forwardWatts > 0.1f || _inputPowerAccumulator > 0.0f)
     {
+        // DBG("Controller::onInputPower: %.1fW [Core %d]\n", forwardWatts, xPortGetCoreID());
+        float alpha = forwardWatts > _inputPowerAccumulator ? 1.0f : 0.1f; // 1 = fast 0.2 = slow
+        _inputPowerAccumulator += alpha * (forwardWatts - _inputPowerAccumulator);
+
+        if (_inputPowerAccumulator < 0.1f)
+            _inputPowerAccumulator = 0.0f;
+
         updateScreenTimeout();
         _timerRfInput = millis() + 100;
 
@@ -61,13 +79,6 @@ void Controller::onInputPower(float forwardWatts)
             _txStateRF = true;
             DBG("RF Input: TX ON (ms %ld) [Core %d]\n", millis(), xPortGetCoreID());
         }
-    }
-
-    if (forwardWatts > 0.1f || _inputPowerAccumulator > 0.0f)
-    {
-        // DBG("Controller::onInputPower: %.1fW [Core %d]\n", forwardWatts, xPortGetCoreID());
-        float alpha = forwardWatts > _inputPowerAccumulator ? 0.5f : 0.2f; // 1 = fast 0.2 = slow
-        _inputPowerAccumulator += alpha * (forwardWatts - _inputPowerAccumulator);
 
         _ui.updateInputPower(_inputPowerAccumulator);
     }
@@ -144,12 +155,6 @@ void Controller::onClientConnected(uint8_t macAddress[6])
 
 void Controller::onPowerSupplyStatus(PowerSupplyMode mode, int intTemp, int outTemp, float current, float outVoltage, int inputVoltage)
 {
-    if (!_voltageSet && mode == PowerSupplyMode::NORMAL)
-    {
-        // _psu.setStartupVoltage(50);
-        // _psu.setOperationalVoltageAndCurrent(50, 18);
-        // _voltageSet = true;
-    }
     _psuAlarm = mode != PowerSupplyMode::NORMAL;
     _ui.updatePowerSupply(mode, intTemp, outTemp, current, outVoltage, inputVoltage);
 }
@@ -176,25 +181,17 @@ void Controller::onTemperatureUpdated(float temperature)
     if (_lastTemperature != temperature && _started)
     {
         _ui.updateTemperature(temperature);
-
-        float alpha = temperature > _temperatureAccumulator ? 1 : 0.1f; // 1 = fast 0.1 = slow
-        _temperatureAccumulator += alpha * (temperature - _temperatureAccumulator);
-
-        _overTemperature = _temperatureAccumulator > PROTECTION_TEMPERATURE;
-
-        uint8_t t = minimum(_temperatureAccumulator, _temperatureMax);
-        t = maximum(t, _temperatureMin);
-
-        uint8_t fanSpeed = map(t, _temperatureMin, _temperatureMax, 0, 100);
-
+        _sup.updateTemperature(temperature);
         _lastTemperature = temperature;
-        if (fanSpeed != _lastFanSpeed)
-        {
-            _hal.setFanSpeed(fanSpeed);
-            _ui.updateFanSpeed(fanSpeed);
-            _lastFanSpeed = fanSpeed;
-            DBG("Controller: Fan speed set to %d%% (Temp: %.2foC, Avg: %.2foC) [Core %d]\n", fanSpeed, temperature, _temperatureAccumulator, xPortGetCoreID());
-        }
+    }
+}
+
+void Controller::onFanSpeedChanged(uint8_t perc)
+{
+    _hal.setFanSpeed(perc);
+    if (_connected)
+    {
+        _ui.updateFanSpeed(perc);
     }
 }
 
@@ -258,6 +255,7 @@ void Controller::start()
     DBG("Controller::start() [Core %d]\n", xPortGetCoreID());
     if (_rig.initializeRig())
     {
+        _hal.started(true);
         DBG("Controller::start() Transceiver detected successfully\n");
         _ui.loadScreen(Screens::MAIN);
         //_ui.loadScreen(Screens::PSU);
@@ -274,17 +272,13 @@ void Controller::onClientDisconnected()
 {
     DBG("Controller::onClientDisconnected [Core %d]\n", xPortGetCoreID());
     _connected = false;
-    _lastFanSpeed = 0;
-    _hal.setFanSpeed(0);
     _hal.onPowerSupplyChanged(false);
+    _sup.end();
     updateScreenTimeout();
 }
 
 void Controller::loop()
 {
-    _hal.loop();
-    _psu.loop();
-
     // start & end functions must run o loop (core 1) to avoid blocking core 0 (bluetooth)
     if (_connected && !_started)
     {
@@ -295,6 +289,8 @@ void Controller::loop()
         end();
     }
 
+    _hal.loop();
+    _psu.loop();
     _ui.loop(_started);
 
     if (_txStateRF && millis() > _timerRfInput)
@@ -314,9 +310,12 @@ void Controller::loop()
 void Controller::begin()
 {
     DBG("Controller::begin [Core %d]\n", xPortGetCoreID());
+
     updateScreenTimeout();
+
     _preferences.begin("settings", false);
     _ui.begin();
+
     /*************** RIG BEGIN */
     auto cbConnected = std::bind(&Controller::onClientConnected,
                                  this,
@@ -338,7 +337,6 @@ void Controller::begin()
     _rig.onDisconnectedCallback(cbDisconnected);
     _rig.onFrequencyCallback(cbFrequency);
     _rig.onMeterCallback(cbMeter);
-
     _rig.begin(BT_NAME);
 
     /*************** RIG END */
@@ -371,9 +369,15 @@ void Controller::begin()
     _hal.onDiagnosticsCallback(cbDiag);
     _hal.onTemperatureCallback(cbTemp);
     _hal.onTouchCallback(cbTouch);
-
-    Diag diag = _hal.begin();
     /*************** HAL END */
+
+    /*************** PROTECTION BEGIN */
+    auto cbFanSpeed = std::bind(&Controller::onFanSpeedChanged,
+                                this,
+                                std::placeholders::_1);
+    _sup.onFanSpeedCallback(cbFanSpeed);
+    _sup.begin();
+    /*************** PROTECTION END */
 
     /*************** PSU BEGIN */
     auto cbPsuStatus = std::bind(&Controller::onPowerSupplyStatus,
@@ -391,7 +395,9 @@ void Controller::begin()
 
     _bypassEnabled = _preferences.getBool("bypass");
 
-    if (diag.mainExpander && diag.rfAdcFwd && diag.rfAdcRev && diag.temperature)
+    Diag diag = _hal.begin();
+    if (diag.mainExpander && diag.rfAdcFwd && diag.rfAdcRev && 
+    diag.rfAdcInput && diag.temperature)
     {
         _ui.loadScreen(Screens::STANDBY);
     }
@@ -409,4 +415,7 @@ void Controller::end()
         _ui.loadScreen(Screens::STANDBY);
     }
     _started = false;
+    _hal.started(false);
+    _lastBand = HAM_BANDS[0];
+    _lastFreq = 0;
 }
