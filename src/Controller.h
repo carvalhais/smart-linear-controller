@@ -6,6 +6,7 @@
 #include <Types.h>
 #include <ICOM.h>
 #include <HardwareLayer.h>
+#include <Supervisor.h>
 #include <UI/UI.h>
 #include <CAN/CANTypes.h>
 #include <CAN/CANPSU.h>
@@ -26,16 +27,12 @@ public:
     void onFrequencyChanged(uint32_t frequency, uint8_t modulation, uint8_t filter, bool txState);
     void onClientConnected(uint8_t macAddress[6]);
     void onClientDisconnected();
-
     void onPowerSupplyStatus(PowerSupplyMode mode, int intTemp, int outTemp, float current, float outVoltage, int inputVoltage);
     void onMeterUpdated(uint8_t type, uint8_t value);
     void onDiagnosticsUpdated(Diag diag);
     void onTemperatureUpdated(float temperature);
     void onTouch(TouchPoint tp);
-
-    // void onAmplifierCallback(AmplifierCb callback);
-    // void onLowPassFilterCallback(LowPassFilterCb callback);
-
+    void onFanSpeedChanged(uint8_t perc);
     void onOutputPower(float forwardWatts, float reverseWatts);
     void onInputPower(float forwardWatts);
     void onButtonPressed(int button, bool longPress);
@@ -48,6 +45,7 @@ private:
     void updateScreenTimeout();
 
     float _outputPowerAccumulator = 0;
+    float _outputReverseAccumulator = 0;
     float _inputPowerAccumulator = 0;
     float _powerGainDB = 0;
     Preferences _preferences;
@@ -56,11 +54,8 @@ private:
 
     ICOM _rig;
     HardwareLayer _hal;
+    Supervisor _sup;
     CANPSU _psu;
-
-    uint8_t _temperatureMin = 35;
-    uint8_t _temperatureMax = 50;
-    // ATU1000 _atu;
     UI _ui;
 
     Band HAM_BANDS[BANDS_SIZE] = {
@@ -71,43 +66,43 @@ private:
             lpf : BAND_OTHER,
             outputPowerFactorFwd : 1,
             outputPowerFactorRev : 1,
-            inputPowerFactor: 1
+            inputPowerFactor : 1
         },
         {
             min : 1800,
             max : 2000,
             name : (char *)"160",
             lpf : BAND_160M,
-            outputPowerFactorFwd : 1, 
+            outputPowerFactorFwd : 1,
             outputPowerFactorRev : 1,
-            inputPowerFactor: 1
+            inputPowerFactor : 1
         },
         {
             min : 3500,
             max : 4000,
             name : (char *)"80M",
             lpf : BAND_80M,
-            outputPowerFactorFwd : 1, 
+            outputPowerFactorFwd : 1,
             outputPowerFactorRev : 1,
-            inputPowerFactor: 1
+            inputPowerFactor : 1
         },
         {
             min : 6900,
             max : 6999,
             name : (char *)";-)",
             lpf : BAND_60_40M,
-            outputPowerFactorFwd : 1, 
+            outputPowerFactorFwd : 1,
             outputPowerFactorRev : 1,
-            inputPowerFactor: 1
+            inputPowerFactor : 1
         },
         {
             min : 7000,
             max : 7300,
             name : (char *)"40M",
             lpf : BAND_60_40M,
-            outputPowerFactorFwd : 1, 
+            outputPowerFactorFwd : 1,
             outputPowerFactorRev : 1,
-            inputPowerFactor: 1
+            inputPowerFactor : 1
         },
         {
             min : 10000,
@@ -116,7 +111,7 @@ private:
             lpf : BAND_30_20M,
             outputPowerFactorFwd : 1,
             outputPowerFactorRev : 1,
-            inputPowerFactor: 1
+            inputPowerFactor : 1
         },
         {
             min : 14000,
@@ -125,7 +120,7 @@ private:
             lpf : BAND_30_20M,
             outputPowerFactorFwd : 1,
             outputPowerFactorRev : 1,
-            inputPowerFactor: 1
+            inputPowerFactor : 1
         },
         {
             min : 18000,
@@ -134,16 +129,16 @@ private:
             lpf : BAND_17_15M,
             outputPowerFactorFwd : 1,
             outputPowerFactorRev : 1,
-            inputPowerFactor: 1
+            inputPowerFactor : 1
         },
         {
             min : 21000,
             max : 21500,
             name : (char *)"15M",
             lpf : BAND_17_15M,
-            outputPowerFactorFwd : 12.2f, 
+            outputPowerFactorFwd : 12.2f,
             outputPowerFactorRev : 12.2f,
-            inputPowerFactor: 1.40f
+            inputPowerFactor : 1.40f
         },
         {
             min : 24500,
@@ -152,7 +147,7 @@ private:
             lpf : BAND_12_10M,
             outputPowerFactorFwd : 12.3f, // 45.5
             outputPowerFactorRev : 12.3f,
-            inputPowerFactor: 1.43f
+            inputPowerFactor : 1.43f
         },
         {
             min : 26965,
@@ -161,7 +156,7 @@ private:
             lpf : BAND_12_10M,
             outputPowerFactorFwd : 12.3f,
             outputPowerFactorRev : 24.0f,
-            inputPowerFactor: 1.50f
+            inputPowerFactor : 1.50f
         },
         {
             min : 28000,
@@ -170,16 +165,16 @@ private:
             lpf : BAND_12_10M,
             outputPowerFactorFwd : 12.3f,
             outputPowerFactorRev : 24.0f,
-            inputPowerFactor: 1.50f
+            inputPowerFactor : 1.50f
         },
         {
             min : 50000,
             max : 54000,
             name : (char *)"6M",
             lpf : BAND_6M,
-            outputPowerFactorFwd : 13.3f, 
+            outputPowerFactorFwd : 13.3f,
             outputPowerFactorRev : 13.3f,
-            inputPowerFactor: 2.86f
+            inputPowerFactor : 2.86f
         },
         {
             min : 144000,
@@ -188,7 +183,7 @@ private:
             lpf : BAND_2M,
             outputPowerFactorFwd : 1,
             outputPowerFactorRev : 1,
-            inputPowerFactor: 1
+            inputPowerFactor : 1
         },
         {
             min : 430000,
@@ -197,20 +192,17 @@ private:
             lpf : BAND_70CM,
             outputPowerFactorFwd : 1,
             outputPowerFactorRev : 1,
-            inputPowerFactor: 1
+            inputPowerFactor : 1
         },
     };
 
     Band _lastBand = HAM_BANDS[0];
-    float _lastTemperature;
-    float _temperatureAccumulator;
-    uint8_t _lastFanSpeed = 0;
     timer_t _timer1;
     volatile timer_t _timerTimeout = 0;
     volatile timer_t _timerRfInput;
     uint8_t _counter;
     time_t _nextTouch;
-    bool _voltageSet;
+    float _lastTemperature;
 
     volatile bool _started = false;
     volatile bool _connected = false;
@@ -222,7 +214,4 @@ private:
     volatile bool _protectionEnabled = false;
     volatile bool _bypassEnabled = false;
     volatile bool _psuAlarm = false;
-    volatile bool _overTemperature = false;
-
-
 };

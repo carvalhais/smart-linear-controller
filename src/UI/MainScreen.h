@@ -6,6 +6,8 @@
 #include "UI/GradientButton.h"
 #include "CAN/CANTypes.h"
 #include "ScreenBase.h"
+#include "TouchRegion.h"
+#include "Status.h"
 
 class MainScreen : public ScreenBase
 {
@@ -38,6 +40,7 @@ public:
     Frequency _freq;
     Meters _meters;
     Bottom _bottom;
+    Status _status;
 
 private:
     TFT_eSPI *_tft;
@@ -51,7 +54,7 @@ private:
     uint16_t _w;
     uint16_t _h;
     uint8_t _bandHeight;
-    
+
     GradientButton _btnBypass;
     GradientButton _btnPowerOff;
 

@@ -4,8 +4,9 @@
 #include <Arduino.h>
 #include <TFT_eSPI.h>
 #include <Defines.h>
+#include "IWidget.h"
 
-class GradientButton
+class GradientButton : public IWidget
 {
 public:
     GradientButton();
@@ -19,7 +20,7 @@ public:
     uint16_t yPos();
     uint16_t width();
     uint16_t height();
-
+    
 private:
     TFT_eSprite *_spr;
     uint16_t _x;

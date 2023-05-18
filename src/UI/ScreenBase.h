@@ -5,6 +5,7 @@
 #include "Types.h"
 #include "Defines.h"
 #include "FT62XXTouchScreen.h"
+#include "TouchRegion.h"
 
 class ScreenBase
 {

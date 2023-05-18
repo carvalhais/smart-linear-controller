@@ -72,6 +72,8 @@ void DiagScreen::loop()
         //printItem("Main Board", _diag.inputBoard);
         printItem("ADC RF Forward", _diag.rfAdcFwd);
         printItem("ADC RF Reverse", _diag.rfAdcRev);
+        printItem("ADC RF Input", _diag.rfAdcInput);
+
         printItem("Temperature Sensor", _diag.temperature);
         if (_diag.temperature)
         {

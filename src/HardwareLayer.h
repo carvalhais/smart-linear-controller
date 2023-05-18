@@ -37,6 +37,7 @@ public:
     Diag begin();
     void end();
     void loop();
+    void started(bool state);
     static void task(void *pvParameters);
     void setFanSpeed(uint8_t duty);
     void setBacklightLevel(uint8_t duty);
@@ -56,7 +57,8 @@ private:
     TouchCb _touchCallback;
 
     bool _txOn = false;
-
+    bool _started = false;
+    
     void readOutputPower();
     void readInputPower();
 
@@ -75,6 +77,7 @@ private:
     LatchingRelay _vhfRelay;
     LowPassFilter _lpf = BAND_OTHER;
     uint8_t _previousLpfPin = 255;
+    uint8_t _statePinHFVHF = LOW;
     Amplifier _amp = AMP_UNKNOWN;
     float _lastTemperature = 0;
     Band _band;
@@ -89,13 +92,12 @@ private:
     float _outputPowerFactorFwd;
     float _outputPowerFactorRev;
     float _inputPowerFactor;
-
-
     float _lastOutputPower;
 
     ErriezMCP23017 _io = ErriezMCP23017(ADDRESS_IO_EXPANDER);
     ADS1115 _adsOutputFwd = ADS1115(ADDRESS_ADC_OUTPUT_FWD);
     ADS1115 _adsOutputRev = ADS1115(ADDRESS_ADC_OUTPUT_REV);
+    ADS1115 _adsInputFwd = ADS1115(ADDRESS_ADC_INPUT_FWD);
 
     OneWire _oneWire = OneWire(PIN_TEMPERATURE);
     DS18B20 _temperatureSensor = DS18B20(&_oneWire);

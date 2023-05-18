@@ -57,16 +57,9 @@ void PowerSupplyScreen::begin(uint16_t x, uint16_t y, uint16_t w, uint16_t h, TF
     _update = true;
     loop();
 
-    TouchRegion r1;
-    r1.x = _x;
-    r1.y = _y;
-    r1.w = _w;
-    r1.h = _h;
-    r1.cmd = TouchCmd::PSU_BACK;
-
-    _touchRegions = new TouchRegion[1];
-    _touchRegions[0] = r1;
+    TouchRegion r1 = TouchRegion(_x, _y, _w, _h, TouchCmd::PSU_BACK);
     _numTouchRegions = 1;
+    _touchRegions = new TouchRegion[_numTouchRegions]{r1};
 
     _init = true;
 }

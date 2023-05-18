@@ -31,7 +31,7 @@ void HardwareLayer::onTouchCallback(TouchCb cb)
 
 Diag HardwareLayer::begin()
 {
-    Wire.begin(PIN_SDA, PIN_SCL, (uint32_t)400E3);
+    Wire.begin(PIN_SDA, PIN_SCL, (uint32_t)100E3);
 
     if (!_io.begin(true)) //
     {
@@ -39,7 +39,6 @@ Diag HardwareLayer::begin()
     }
     else
     {
-        //_io = ioFrom23017(ADDRESS_IO_EXPANDER);
         DBG("MCP23017: OK (IO expander) [Core %d]\n", xPortGetCoreID());
         _diag.mainExpander = true;
         _vhfRelay.begin(&_io, IO_PIN_PULSE_TX, IO_PIN_PULSE_RX);
@@ -60,6 +59,7 @@ Diag HardwareLayer::begin()
         _adsOutputFwd.setMode(0);
     }
 
+
     if (!_adsOutputRev.isConnected()) //
     {
         DBG("ADS1X15: Fail (REV RF Sensor) [Core %d]\n", xPortGetCoreID());
@@ -72,6 +72,21 @@ Diag HardwareLayer::begin()
         _adsOutputRev.setGain(2);
         _adsOutputRev.setDataRate(7);
         _adsOutputRev.setMode(0);
+    }
+    
+    if (!_adsInputFwd.isConnected()) //
+    {
+        DBG("ADS1X15: Fail (INPUT RF Sensor) [Core %d]\n", xPortGetCoreID());
+    }
+    else
+    {
+        _adsInputFwd.begin();
+        DBG("ADS1X15: OK (INPUT RF Sensor) [Core %d]\n", xPortGetCoreID());
+        _diag.rfAdcInput = true;
+        _adsInputFwd.setGain(1);
+        _adsInputFwd.setDataRate(7);
+        _adsInputFwd.setMode(0);
+        _adsInputFwd.requestADC(ADC_RF_CHANNEL_INPUT_FWD);
     }
 
     bool sensorFound = _temperatureSensor.begin();
@@ -139,6 +154,23 @@ void HardwareLayer::end()
     }
 }
 
+void HardwareLayer::started(bool state)
+{
+    _started = state;
+    if (!_started)
+    {
+        _io.portWrite(0x00);
+    }
+    else
+    {
+        if (_previousLpfPin < 255)
+        {
+            _io.digitalWrite(_previousLpfPin, HIGH);
+        }
+        _io.digitalWrite(IO_PIN_HF_VHF, _statePinHFVHF);
+    }
+}
+
 void HardwareLayer::loop()
 {
     if (millis() > _timer1)
@@ -151,7 +183,7 @@ void HardwareLayer::loop()
         _timer1 = millis() + 10;
     }
 
-    if (millis() > _timer2)
+    if (millis() > _timer2 && _started)
     {
         if (_temperatureCallback && _diag.temperature)
         {
@@ -214,15 +246,16 @@ void HardwareLayer::setAmplifier(Amplifier amp)
         {
             _adsOutputFwd.requestADC(ADC_RF_CHANNEL_HF_FWD);
             _adsOutputRev.requestADC(ADC_RF_CHANNEL_HF_REV);
-            _io.digitalWrite(IO_PIN_HF_VHF, HIGH);
+            _statePinHFVHF = HIGH;
         }
         else
         {
             _adsOutputFwd.requestADC(ADC_RF_CHANNEL_VHF_FWD);
             _adsOutputRev.requestADC(ADC_RF_CHANNEL_VHF_REV);
-            _io.digitalWrite(IO_PIN_HF_VHF, LOW);
+            _statePinHFVHF = LOW;
         }
-        DBG("Amplifier changed: %s (IO %d %s) [Core %d]\n", desc, IO_PIN_HF_VHF, amp == AMP_HF ? "HIGH" : "LOW", xPortGetCoreID());
+        _io.digitalWrite(IO_PIN_HF_VHF, _statePinHFVHF);
+        DBG("Amplifier changed: %s (IO %d %s) [Core %d]\n", desc, IO_PIN_HF_VHF, _statePinHFVHF ? "HIGH" : "LOW", xPortGetCoreID());
     }
     else
     {
@@ -376,7 +409,7 @@ void HardwareLayer::readOutputPower()
 
             float revVolts = _adsOutputRev.getValue() * _adsOutputRev.toVoltage(1);
             float revPwr = pow(revVolts * _outputPowerFactorRev, 2);
-            
+
             if (_outputPowerCallback)
                 _outputPowerCallback(fwdPwr, revPwr);
         }
@@ -390,7 +423,7 @@ void HardwareLayer::readOutputPower()
 
 void HardwareLayer::readInputPower()
 {
-    float volts = readVoltageSamples(PIN_INPUT_FWD, 10);
+    float volts = readVoltageSamples(PIN_INPUT_FWD, 20);
 
     if (volts > 0.2)
     {

@@ -41,13 +41,6 @@ enum TouchCmd {
     PSU_BACK
 };
 
-struct TouchRegion {
-    uint16_t x;
-    uint16_t y;
-    uint16_t w;
-    uint16_t h;
-    TouchCmd cmd;
-};
 
 struct Band
 {
@@ -74,6 +67,7 @@ struct Diag
     bool mainExpander;
     bool rfAdcFwd;
     bool rfAdcRev;
+    bool rfAdcInput;
     bool temperature;
     float temperatureCelsius;
 };

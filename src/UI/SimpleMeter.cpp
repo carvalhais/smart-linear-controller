@@ -14,7 +14,6 @@ void SimpleMeter::begin(const char *header, uint16_t x, uint16_t y, uint16_t w, 
     _w = w;
     _h = h;
     _h2 = h2;
-
     _tft->loadFont(_smallFont);
     _tft->setTextDatum(MR_DATUM);
     _tft->drawString(header, x + w - _padRight, y + (h / 2) + 2);
@@ -34,18 +33,17 @@ void SimpleMeter::setValue(float value, uint8_t digits)
         _tft->loadFont(_largeFont);
         _tft->setTextColor(TFT_WHITE, TFT_BLACK, true);
         _tft->setTextDatum(MR_DATUM);
-        char buffer[9];
+        char buffer[10];
         if (value == -1)
         {
-            snprintf(buffer, 8, "%7s", "-");
+            snprintf(buffer, 9, "%8s", "-");
         }
         else
         {
-            char tmp[9];
-            snprintf(tmp, 8, "%.*f", digits, value);
-            snprintf(buffer, 8, "%7s", tmp);
+            char tmp[10];
+            snprintf(tmp, 9, "%.*f", digits, value);
+            snprintf(buffer, 9, "%8s", tmp);
         }
-        //DBG("SimpleMeter: %s\n", buffer);
         _tft->drawString(buffer, _x + _w - _padRight, _y + _h + (_h2 / 2) + 3);
         _tft->unloadFont();
         _lastValue = value;

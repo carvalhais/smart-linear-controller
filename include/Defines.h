@@ -38,11 +38,13 @@
 #define ADDRESS_IO_EXPANDER 0x20
 #define ADDRESS_ADC_OUTPUT_FWD 0x48
 #define ADDRESS_ADC_OUTPUT_REV 0x49
+#define ADDRESS_ADC_INPUT_FWD 0x4A
 
 #define ADC_RF_CHANNEL_HF_REV 0
 #define ADC_RF_CHANNEL_HF_FWD 1
 #define ADC_RF_CHANNEL_VHF_REV 3 // 2
 #define ADC_RF_CHANNEL_VHF_FWD 2 // 3
+#define ADC_RF_CHANNEL_INPUT_FWD 0
 
 #define ADC_SLOPE 40.0f // Slope of the AD8307 log output (Default = 40)
 
