@@ -1,11 +1,14 @@
-#include "BargraphBase.h"
+#include "BargraphRfPower.h"
 
-class BargraphSwr : public BargraphBase
+class BargraphSwr : public BargraphRfPower
 {
 public:
 	void drawScale();
 	void setValue(float value);
+	void drawScaleSwr();
+	void setValueSwr(float value);
+	void setReverseMode(ReversePowerMode mode);
 
 private:
-	void dumpSwr(float ratio, int offset);
+	ReversePowerMode _reverseMode = ReversePowerMode::MODE_SWR;
 };

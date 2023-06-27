@@ -1,7 +1,47 @@
 
 #include "BargraphSwr.h"
 
+void BargraphSwr::setReverseMode(ReversePowerMode mode)
+{
+  _reverseMode = mode;
+  if (_spr != nullptr && _spr->created())
+  {
+    drawScale();
+  }
+}
+
 void BargraphSwr::setValue(float value)
+{
+  if (_tft == nullptr) // not initialized
+    return;
+
+  if (_reverseMode == MODE_SWR)
+  {
+    setValueSwr(value);
+  }
+  else
+  {
+    BargraphRfPower::setValue(value);
+  }
+}
+
+void BargraphSwr::drawScale()
+{
+  if (_tft == nullptr) // not initialized
+    return;
+  if (_reverseMode == MODE_SWR)
+  {
+    DBG("SWR: Mode set to SWR\n");
+    drawScaleSwr();
+  }
+  else
+  {
+    DBG("SWR: Mode set to R. POWER\n");
+    BargraphRfPower::drawScale();
+  }
+}
+
+void BargraphSwr::setValueSwr(float value)
 {
   char swrtxt[5];
   float swr = (1 + value) / (1 - value);
@@ -16,9 +56,11 @@ void BargraphSwr::setValue(float value)
   setValueLabel(value, swrtxt);
 }
 
-void BargraphSwr::drawScale()
+void BargraphSwr::drawScaleSwr()
 {
   _spr->loadFont(_smallFont);
+  _spr->fillRoundRect(0, _spr->height() - 10, _spr->width(), 10, 2, TFT_BLACK);
+
   char buf[10];
   float ratio;
   float swrScaleValues[] = {1, 1.5, 2, 3};

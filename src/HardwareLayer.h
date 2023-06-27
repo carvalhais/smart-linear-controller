@@ -4,7 +4,6 @@
 #include <Defines.h>
 #include <Types.h>
 #include <Button.h>
-#include <LatchingRelay.h>
 #include <TFT_eSPI.h>
 #include <FT62XXTouchScreen.h>
 #include <ADS1X15.h>
@@ -14,8 +13,7 @@
 
 class HardwareLayer
 {
-    typedef std::function<void(float forwardW, float reverseW)> RfPowerSwrCb;
-    typedef std::function<void(float forwardW)> RfPowerCb;
+    typedef std::function<void(float inputW, float forwardW, float reverseW)> RfPowerCb;
     typedef std::function<void(int button, bool longPress)> ButtonPressedCb;
     typedef std::function<void(Diag diag)> DiagCb;
     typedef std::function<void(float temperature)> TemperatureCb;
@@ -24,8 +22,7 @@ class HardwareLayer
 public:
     HardwareLayer();
 
-    void onOutputRfPowerCallback(RfPowerSwrCb cb);
-    void onInputRfPowerCallback(RfPowerCb cb);
+    void onRfPowerCallback(RfPowerCb cb);
     void onDiagnosticsCallback(DiagCb cb);
     void onTemperatureCallback(TemperatureCb cb);
     void onTouchCallback(TouchCb cb);
@@ -38,19 +35,16 @@ public:
     void end();
     void loop();
     void started(bool state);
-    static void task(void *pvParameters);
     void setFanSpeed(uint8_t duty);
     void setBacklightLevel(uint8_t duty);
-    
+
 private:
     void setAmplifier(Amplifier amp);
     void setLowPassFilter(LowPassFilter lpf);
     float readTemperature();
-    float readVoltage(uint8_t pin);
-    float readVoltageSamples(uint8_t pin, uint8_t samples);
+    float readVoltageInternalADC(uint8_t pin);
 
-    RfPowerSwrCb _outputPowerCallback;
-    RfPowerCb _inputPowerCallback;
+    RfPowerCb _rfPowerCallback;
     DiagCb _diagCallback;
     ButtonPressedCb _buttonPressed;
     TemperatureCb _temperatureCallback;
@@ -58,23 +52,15 @@ private:
 
     bool _txOn = false;
     bool _started = false;
-    
-    void readOutputPower();
-    void readInputPower();
 
-    float readRfPower(ADS1115 *adc, float factor);
-
+    void readRfPower();
     bool deviceReady(uint8_t address);
-    void doHigh();
-    void doLow();
-    void doToggle();
+    float getAdcVoltage(ADS1115 *ads, uint8_t channel);
 
     volatile time_t _timer1;
     volatile time_t _timer2;
-    volatile time_t _timerPowerReading;
     volatile bool state;
 
-    LatchingRelay _vhfRelay;
     LowPassFilter _lpf = BAND_OTHER;
     uint8_t _previousLpfPin = 255;
     uint8_t _statePinHFVHF = LOW;
@@ -92,7 +78,9 @@ private:
     float _outputPowerFactorFwd;
     float _outputPowerFactorRev;
     float _inputPowerFactor;
-    float _lastOutputPower;
+
+    uint8_t _channelFwd;
+    uint8_t _channelRev;
 
     ErriezMCP23017 _io = ErriezMCP23017(ADDRESS_IO_EXPANDER);
     ADS1115 _adsOutputFwd = ADS1115(ADDRESS_ADC_OUTPUT_FWD);
@@ -101,4 +89,7 @@ private:
 
     OneWire _oneWire = OneWire(PIN_TEMPERATURE);
     DS18B20 _temperatureSensor = DS18B20(&_oneWire);
+
+    float _diodeAdjustA = 1.0;
+    float _diodeAdjustB = 0.75f;
 };

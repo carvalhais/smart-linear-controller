@@ -36,6 +36,7 @@ public:
     void frequencyChanged(uint32_t frequency, uint8_t modulation, uint8_t filter, bool txState, char *band, bool txEnabled);
     TouchCmd touch(TouchPoint tp);
     void updateBypass(bool state);
+    void setReverseMode(ReversePowerMode mode);
     void unloadScreen(Screens screen);
     void drawHeader();
 
@@ -47,8 +48,9 @@ public:
 protected:
 private:
     TFT_eSPI _tft = TFT_eSPI();
-
+    ReversePowerMode _reverseMode = ReversePowerMode::MODE_SWR;
     Screens _activeScreen = Screens::STANDBY;
+    bool _showReversePower = false;
     ScreenBase *_screenPtr;
     uint8_t *_microFont;
     uint8_t *_smallFont;

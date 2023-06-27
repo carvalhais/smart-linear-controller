@@ -23,6 +23,7 @@ public:
 	void setColor(uint32_t on, uint32_t off, uint32_t font);
 	void loop();
 	virtual void drawScale();
+	void setHeader(const char *header);
 
 protected:
 	void drawScaleItem(float value, char *label);
@@ -67,9 +68,11 @@ protected:
 	time_t _nextRefresh;
 	TFT_eSPI *_tft;
 	TFT_eSprite *_spr;
+	timer_t _timerPeak;
 
 private:
 	void drawLabelValue();
+	uint8_t relativePosition(float value);
 };
 
 #endif

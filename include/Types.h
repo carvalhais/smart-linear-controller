@@ -27,10 +27,10 @@ enum Amplifier
 enum Protection
 {
     PROTECTION_NONE,
-    SWR,
-    GAIN,
-    TEMPERATURE,
-    CURRENT
+    PROTECTION_SWR,
+    PROTECTION_GAIN,
+    PROTECTION_TEMPERATURE,
+    PROTECTION_CURRENT
 };
 
 enum TouchCmd {
@@ -38,6 +38,7 @@ enum TouchCmd {
     MAIN_PSU,
     MAIN_BYPASS,
     MAIN_STANDBY,
+    MAIN_SWR_MODE,
     PSU_BACK
 };
 
@@ -70,4 +71,10 @@ struct Diag
     bool rfAdcInput;
     bool temperature;
     float temperatureCelsius;
+};
+
+enum ReversePowerMode
+{
+    MODE_SWR,
+    MODE_POWER
 };

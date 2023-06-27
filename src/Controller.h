@@ -11,7 +11,7 @@
 #include <CAN/CANTypes.h>
 #include <CAN/CANPSU.h>
 
-#define BANDS_SIZE 15
+#define BANDS_SIZE 14
 
 class Controller
 {
@@ -33,15 +33,14 @@ public:
     void onTemperatureUpdated(float temperature);
     void onTouch(TouchPoint tp);
     void onFanSpeedChanged(uint8_t perc);
-    void onOutputPower(float forwardWatts, float reverseWatts);
-    void onInputPower(float forwardWatts);
+    void onRfPowerUpdate(float inputForwardWatts, float outputForwardWatts, float outputReverseWatts);
     void onButtonPressed(int button, bool longPress);
 
 private:
-    void updateFrequencyWidget();
     void start();
     bool transmitEnabled();
     void setBypassState();
+    void setReverseMode();
     void updateScreenTimeout();
 
     float _outputPowerAccumulator = 0;
@@ -64,117 +63,108 @@ private:
             max : 0,
             name : (char *)"-",
             lpf : BAND_OTHER,
-            outputPowerFactorFwd : 1,
-            outputPowerFactorRev : 1,
-            inputPowerFactor : 1
+            outputPowerFactorFwd : 24.0f,
+            outputPowerFactorRev : 24.0f,
+            inputPowerFactor : 0.72f
         },
         {
             min : 1800,
             max : 2000,
             name : (char *)"160",
             lpf : BAND_160M,
-            outputPowerFactorFwd : 1,
-            outputPowerFactorRev : 1,
-            inputPowerFactor : 1
+            outputPowerFactorFwd : 28.0f,
+            outputPowerFactorRev : 32.0f,
+            inputPowerFactor : 0.72f
         },
         {
             min : 3500,
             max : 4000,
             name : (char *)"80M",
             lpf : BAND_80M,
-            outputPowerFactorFwd : 1,
-            outputPowerFactorRev : 1,
-            inputPowerFactor : 1
+            outputPowerFactorFwd : 28.0f,
+            outputPowerFactorRev : 34.0f,
+            inputPowerFactor : 0.72f
         },
         {
             min : 6900,
-            max : 6999,
-            name : (char *)";-)",
-            lpf : BAND_60_40M,
-            outputPowerFactorFwd : 1,
-            outputPowerFactorRev : 1,
-            inputPowerFactor : 1
-        },
-        {
-            min : 7000,
             max : 7300,
             name : (char *)"40M",
             lpf : BAND_60_40M,
-            outputPowerFactorFwd : 1,
-            outputPowerFactorRev : 1,
-            inputPowerFactor : 1
+            outputPowerFactorFwd : 28.0f,
+            outputPowerFactorRev : 26.0f,
+            inputPowerFactor : 0.74f
         },
         {
             min : 10000,
             max : 10500,
             name : (char *)"30M",
             lpf : BAND_30_20M,
-            outputPowerFactorFwd : 1,
-            outputPowerFactorRev : 1,
-            inputPowerFactor : 1
+            outputPowerFactorFwd : 27.0f,
+            outputPowerFactorRev : 22.0f,
+            inputPowerFactor : 0.74f
         },
         {
             min : 14000,
             max : 14350,
             name : (char *)"20M",
             lpf : BAND_30_20M,
-            outputPowerFactorFwd : 1,
-            outputPowerFactorRev : 1,
-            inputPowerFactor : 1
+            outputPowerFactorFwd : 27.0f,
+            outputPowerFactorRev : 20.0f,
+            inputPowerFactor : 0.74f
         },
         {
             min : 18000,
             max : 18500,
             name : (char *)"17M",
             lpf : BAND_17_15M,
-            outputPowerFactorFwd : 1,
-            outputPowerFactorRev : 1,
-            inputPowerFactor : 1
+            outputPowerFactorFwd : 26.0f,
+            outputPowerFactorRev : 20.0f,
+            inputPowerFactor : 0.76f
         },
         {
             min : 21000,
             max : 21500,
             name : (char *)"15M",
             lpf : BAND_17_15M,
-            outputPowerFactorFwd : 12.2f,
-            outputPowerFactorRev : 12.2f,
-            inputPowerFactor : 1.40f
+            outputPowerFactorFwd : 26.0f,
+            outputPowerFactorRev : 20.0f,
+            inputPowerFactor : 0.76f
         },
         {
             min : 24500,
             max : 25000,
             name : (char *)"12M",
             lpf : BAND_12_10M,
-            outputPowerFactorFwd : 12.3f, // 45.5
-            outputPowerFactorRev : 12.3f,
-            inputPowerFactor : 1.43f
+            outputPowerFactorFwd : 26.0f,
+            outputPowerFactorRev : 22.0f,
+            inputPowerFactor : 0.76f
         },
         {
             min : 26965,
             max : 27855,
             name : (char *)"11M",
             lpf : BAND_12_10M,
-            outputPowerFactorFwd : 12.3f,
+            outputPowerFactorFwd : 26.0f,
             outputPowerFactorRev : 24.0f,
-            inputPowerFactor : 1.50f
+            inputPowerFactor : 1.12f
         },
         {
             min : 28000,
             max : 29700,
             name : (char *)"10M",
             lpf : BAND_12_10M,
-            outputPowerFactorFwd : 12.3f,
+            outputPowerFactorFwd : 26.0f,
             outputPowerFactorRev : 24.0f,
-            inputPowerFactor : 1.50f
+            inputPowerFactor : 1.12f
         },
         {
             min : 50000,
             max : 54000,
             name : (char *)"6M",
             lpf : BAND_6M,
-            outputPowerFactorFwd : 13.3f,
-            outputPowerFactorRev : 13.3f,
-            inputPowerFactor : 2.86f
+            outputPowerFactorFwd : 32.0f,
+            outputPowerFactorRev : 11.0f,
+            inputPowerFactor : 1.05f
         },
         {
             min : 144000,
@@ -213,5 +203,6 @@ private:
     volatile bool _knownBand = false;
     volatile bool _protectionEnabled = false;
     volatile bool _bypassEnabled = false;
+    volatile ReversePowerMode _reverseMode = ReversePowerMode::MODE_SWR;
     volatile bool _psuAlarm = false;
 };

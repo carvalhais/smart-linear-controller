@@ -11,11 +11,12 @@ class Meters
 public:
     Meters();
 
-    void begin(uint32_t x, uint32_t y, uint32_t w, uint32_t h, TFT_eSPI *tft, const uint8_t smallFont[], const uint8_t mediumFont[]);
+    void begin(uint32_t x, uint32_t y, uint32_t w, uint32_t h, TFT_eSPI *tft, ReversePowerMode mode, const uint8_t smallFont[], const uint8_t mediumFont[]);
     void end();
     void updateOutputPower(float forwardWatts, float reverseWatts);
     void updateInputPower(float forwardWatts);
     void updateTemperature(float temperature);
+    void setReverseMode(ReversePowerMode mode);
     void loop();
 
 private:
@@ -25,7 +26,10 @@ private:
     BargraphRfPower _meterOutputPower;
     BargraphSwr _meterOutputSwr;
 
-    time_t _next = millis();
+    ReversePowerMode _reversePowerMode = ReversePowerMode::MODE_SWR;
+
+    timer_t _next = millis();
+    timer_t _timerWatts = millis();
     bool _updated;
 
     uint32_t _x;
@@ -37,4 +41,11 @@ private:
     uint8_t *_smallFont;
     uint8_t *_mediumFont;
     float _lastTemperature = 0;
+
+    uint8_t _bandHeight;
+    uint8_t _paddingTop;
+    uint8_t _meterHeight = 54;
+
+    const char* _headerSwr = "OUTPUT SWR";
+    const char* _headerReversePower = "REFLECTED POWER (W)";
 };

@@ -197,10 +197,13 @@ TouchCmd UI::touch(TouchPoint tp)
 
 void UI::updateBypass(bool state)
 {
-    if (_activeScreen == Screens::MAIN)
-    {
-        _main.setByPassState(state);
-    }
+    _main.setByPassState(state);
+}
+
+void UI::setReverseMode(ReversePowerMode mode)
+{
+    _reverseMode = mode;
+    _main.setReverseMode(mode);
 }
 
 void UI::unloadScreen(Screens screen)

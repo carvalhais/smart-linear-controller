@@ -3,6 +3,9 @@
 
 void BargraphRfPower::setValue(float value)
 {
+  if (_tft == nullptr) // not initialized
+    return;
+
   if (value > _maxScale && value > (_maxScale * 1.1))
   {
     // increate max scale if higher power is detected
@@ -45,7 +48,6 @@ void BargraphRfPower::drawScale()
   _spr->fillRoundRect(0, _spr->height() - 10, _spr->width(), 10, 2, TFT_BLACK);
   uint8_t steps = 5;
   uint16_t increments = _maxScale / steps;
-
   for (uint8_t i = 0; i <= steps; i++)
   {
     uint16_t value = i * increments;
@@ -53,7 +55,6 @@ void BargraphRfPower::drawScale()
     float ratio = (value / (float)_maxScale);
     drawScaleItem(ratio, (char *)text.c_str());
   }
-
   BargraphBase::drawScale();
   _spr->unloadFont();
   setValue(0);

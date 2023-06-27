@@ -16,57 +16,16 @@ Band Controller::bandLookup(uint32_t freq)
     return HAM_BANDS[0];
 }
 
-void Controller::onOutputPower(float forwardWatts, float reverseWatts)
-{
-    if (!_started)
-        return;
-    if (forwardWatts > 0.0f || _outputPowerAccumulator > 0.0f)
-    {
-        float alpha = forwardWatts > _outputPowerAccumulator ? 1.0f : 0.2f; // 1 = fast 0.2 = slow
-
-        _outputPowerAccumulator += alpha * (forwardWatts - _outputPowerAccumulator);
-        _outputReverseAccumulator += alpha * (reverseWatts - _outputReverseAccumulator);
-
-        if (_outputPowerAccumulator < 1.0f)
-            _outputPowerAccumulator = 0.0f;
-
-        float swr = 0;
-        if (_outputPowerAccumulator > 0)
-        {
-            float ratio = _outputReverseAccumulator / _outputPowerAccumulator;
-            swr = (1 + ratio) / (1 - ratio);
-        }
-
-        _ui.updateOutputPower(_outputPowerAccumulator, _outputReverseAccumulator);
-
-        float gain = 0;
-        if (_inputPowerAccumulator > 0 && _outputPowerAccumulator > 0)
-        {
-            gain = (10.0 * log10(_outputPowerAccumulator / _inputPowerAccumulator));
-            float ratio = _outputPowerAccumulator / _inputPowerAccumulator;
-            // DBG("Controller::onOutputPower: Out Avg %.4fW, In Avg: %.4fW, Gain: %.1fdB, Ratio: %.4f\n", _outputPowerAccumulator, _inputPowerAccumulator, gain, ratio);
-        }
-
-        if (gain != _powerGainDB)
-        {
-            _powerGainDB = gain;
-            _ui.updateGain(_powerGainDB);
-        }
-
-        _sup.updateRfPower(_inputPowerAccumulator, _outputPowerAccumulator, swr, gain);
-    }
-}
-
-void Controller::onInputPower(float forwardWatts)
+void Controller::onRfPowerUpdate(float inputForwardWatts, float outputForwardWatts, float outputReverseWatts)
 {
     if (!_started)
         return;
 
-    if (forwardWatts > 0.1f || _inputPowerAccumulator > 0.0f)
+    if (inputForwardWatts > 0.0f || _inputPowerAccumulator > 0.0f || _outputPowerAccumulator > 0.0f || _outputReverseAccumulator > 0.0f)
     {
-        // DBG("Controller::onInputPower: %.1fW [Core %d]\n", forwardWatts, xPortGetCoreID());
-        float alpha = forwardWatts > _inputPowerAccumulator ? 1.0f : 0.1f; // 1 = fast 0.2 = slow
-        _inputPowerAccumulator += alpha * (forwardWatts - _inputPowerAccumulator);
+        // DBG("Controller::onInputPower: %.1fW [Core %d]\n", inputForwardWatts, xPortGetCoreID());
+        float alpha = inputForwardWatts > _inputPowerAccumulator ? 1.0f : 0.2f; // 1 = fast 0.2 = slow
+        _inputPowerAccumulator += alpha * (inputForwardWatts - _inputPowerAccumulator);
 
         if (_inputPowerAccumulator < 0.1f)
             _inputPowerAccumulator = 0.0f;
@@ -81,6 +40,39 @@ void Controller::onInputPower(float forwardWatts)
         }
 
         _ui.updateInputPower(_inputPowerAccumulator);
+
+        alpha = outputForwardWatts > _outputPowerAccumulator ? 1.0f : 0.2f; // 1 = fast 0.2 = slow
+
+        _outputPowerAccumulator += alpha * (outputForwardWatts - _outputPowerAccumulator);
+        _outputReverseAccumulator += alpha * (outputReverseWatts - _outputReverseAccumulator);
+
+        if (_outputPowerAccumulator < 1.0f)
+            _outputPowerAccumulator = 0.0f;
+
+        _ui.updateOutputPower(_outputPowerAccumulator, _outputReverseAccumulator);
+
+        float swr = 0;
+
+        if (outputForwardWatts > 0)
+        {
+            float ratio = sqrt(_outputPowerAccumulator / _outputReverseAccumulator);
+            swr = (1 + ratio) / (1 - ratio);
+        }
+
+        float gain = 0;
+        if (inputForwardWatts > 0 && outputForwardWatts > 0)
+        {
+            // gain = (10.0 * log10(_outputPowerAccumulator / _inputPowerAccumulator));
+            gain = (10.0 * log10(_outputPowerAccumulator / _inputPowerAccumulator));
+        }
+
+        if (gain != _powerGainDB)
+        {
+            _powerGainDB = gain;
+            _ui.updateGain(_powerGainDB);
+        }
+
+        _sup.updateRfPower(inputForwardWatts, outputForwardWatts, swr, gain);
     }
 }
 
@@ -216,6 +208,9 @@ void Controller::onTouch(TouchPoint tp)
             _bypassEnabled = !_bypassEnabled;
             setBypassState();
             break;
+        case TouchCmd::MAIN_SWR_MODE:
+            setReverseMode();
+            break;
         case TouchCmd::MAIN_STANDBY:
 
             break;
@@ -248,6 +243,14 @@ void Controller::setBypassState()
         _preferences.putBool("bypass", _bypassEnabled);
         DBG("Preferences: Bypass set to %s\n", _bypassEnabled ? "true" : "false");
     }
+}
+
+void Controller::setReverseMode()
+{
+    _reverseMode = _reverseMode == ReversePowerMode::MODE_POWER ? ReversePowerMode::MODE_SWR : ReversePowerMode::MODE_POWER;
+    _preferences.putInt("reverse_power", (uint8_t)_reverseMode);
+    DBG("Preferences: Reverse Mode set to %s\n", _reverseMode == ReversePowerMode::MODE_SWR ? "SWR" : "R. POWER");
+    _ui.setReverseMode(_reverseMode);
 }
 
 void Controller::start()
@@ -314,6 +317,15 @@ void Controller::begin()
     updateScreenTimeout();
 
     _preferences.begin("settings", false);
+
+    _bypassEnabled = _preferences.getBool("bypass");
+    _reverseMode = (ReversePowerMode)_preferences.getInt("reverse_power");
+
+    DBG("Preferences: Bypass Enabled: %s, Reverse Mode: %s\n",
+        _bypassEnabled ? "true" : "false",
+        _reverseMode == MODE_SWR ? "SWR" : "R. POWER");
+
+    _ui.setReverseMode(_reverseMode);
     _ui.begin();
 
     /*************** RIG BEGIN */
@@ -342,13 +354,12 @@ void Controller::begin()
     /*************** RIG END */
 
     /*************** HAL BEGIN */
-    auto cbOutputPwr = std::bind(&Controller::onOutputPower,
-                                 this,
-                                 std::placeholders::_1,
-                                 std::placeholders::_2);
-    auto cbInputPwr = std::bind(&Controller::onInputPower,
-                                this,
-                                std::placeholders::_1);
+    auto cbPwr = std::bind(&Controller::onRfPowerUpdate,
+                           this,
+                           std::placeholders::_1,
+                           std::placeholders::_2,
+                           std::placeholders::_3);
+
     auto cbButtons = std::bind(&Controller::onButtonPressed,
                                this,
                                std::placeholders::_1,
@@ -363,8 +374,7 @@ void Controller::begin()
     auto cbTouch = std::bind(&Controller::onTouch,
                              this,
                              std::placeholders::_1);
-    _hal.onOutputRfPowerCallback(cbOutputPwr);
-    _hal.onInputRfPowerCallback(cbInputPwr);
+    _hal.onRfPowerCallback(cbPwr);
     _hal.onButtonPressedCallback(cbButtons);
     _hal.onDiagnosticsCallback(cbDiag);
     _hal.onTemperatureCallback(cbTemp);
@@ -393,11 +403,8 @@ void Controller::begin()
     _psu.begin();
     /*************** PSU END */
 
-    _bypassEnabled = _preferences.getBool("bypass");
-
     Diag diag = _hal.begin();
-    if (diag.mainExpander && diag.rfAdcFwd && diag.rfAdcRev && 
-    diag.rfAdcInput && diag.temperature)
+    if (diag.mainExpander && diag.rfAdcFwd && diag.rfAdcRev && diag.rfAdcInput && diag.temperature)
     {
         _ui.loadScreen(Screens::STANDBY);
     }

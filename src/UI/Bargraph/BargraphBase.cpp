@@ -49,7 +49,6 @@ void BargraphBase::begin(
 
   _tft->drawRoundRect(_x, _y, _w, _h, 2, TFT_DARKGREY);
   drawHeader();
-
   _spr = new TFT_eSprite(tft);
   _spr->setColorDepth(8);
   _spr->createSprite(_w - 4, _h - _laneY - 2);
@@ -85,6 +84,13 @@ void BargraphBase::setValueLabel(float value, String valueText)
   // DBG("BargraphBase::setValueLabel: %s [Core %d]\n", valueText, xPortGetCoreID());
 }
 
+uint8_t BargraphBase::relativePosition(float value)
+{
+  float currentRelativeValue = _laneW * (value);
+  // determine the current position, which bar should be turned on
+  return floor(currentRelativeValue / (float)_barWidth);
+}
+
 void BargraphBase::loop()
 {
   if (_tft == nullptr) // not initialized
@@ -94,12 +100,9 @@ void BargraphBase::loop()
   if (_value != _lastValue)
   {
     updateScreen = true;
-    uint8_t start = 0;
-    float currentRelativeValue = _laneW * (_value);
-
+    uint8_t start;
     // determine the current position, which bar should be turned on
-    uint8_t currentPosition = floor(currentRelativeValue / (float)_barWidth);
-
+    uint8_t currentPosition = relativePosition(_value);
     // if the current position is greater than the last position, we need to turn some bars ON
     if (currentPosition > _lastValuePosition && currentPosition > 0)
     {
@@ -128,7 +131,8 @@ void BargraphBase::loop()
 
     _lastValue = _value;
     _lastValuePosition = currentPosition;
-    if (_value > _peakValue)
+
+    if (_value >= _peakValue)
     {
       _peakValue = _value;
       _peakIncrement = 0;
@@ -137,36 +141,37 @@ void BargraphBase::loop()
     }
   }
 
-  if (_peakValue > _value || _lastPeakPosition > 0)
+  if (millis() > _timerPeak)
   {
-    updateScreen = true;
-    uint8_t peakPosition = 0;
-    if (_peakValue > 0.0f)
+    _timerPeak = millis() + 20;
+    if (_peakValue > _value || _lastPeakPosition > 0)
     {
-      float peakRelativeValue = _laneW * (_peakValue);
-      peakPosition = floor(peakRelativeValue / (float)_barWidth);
-    }
-
-    if (_lastPeakPosition != peakPosition)
-    {
-      if (_lastPeakPosition > 0)
+      updateScreen = true;
+      uint8_t peakPosition = 0;
+      if (_peakValue > 0.0f)
       {
-        drawBar(_lastPeakPosition, _barColorOff);
+        peakPosition = relativePosition(_peakValue);
       }
-      if (peakPosition > 0)
+      if (_lastPeakPosition != peakPosition)
       {
-        drawBar(peakPosition, _barColorOn);
+        if (_lastPeakPosition > 0)
+        {
+          drawBar(_lastPeakPosition, _barColorOff);
+        }
+        if (peakPosition > 0)
+        {
+          drawBar(peakPosition, _barColorOn);
+        }
       }
-    }
-    _lastPeakPosition = peakPosition;
-    _peakValue -= (0.002 * _peakIncrement);
-    if (_peakValue < _value)
-    {
-      _peakValue = _value;
-    }
-    _peakIncrement++;
 
-
+      _lastPeakPosition = peakPosition;
+      _peakValue -= (0.001 * _peakIncrement);
+      if (_peakValue < _value)
+      {
+        _peakValue = _value;
+      }
+      _peakIncrement++;
+    }
   }
 
   if (updateScreen)
@@ -214,11 +219,10 @@ void BargraphBase::drawScale()
   }
   _spr->pushSprite(_x + 2, _y + _laneY);
 
-	_lastValue = -1; 
-	_peakValue = 0;
-	_lastValuePosition = 0;
-	_lastPeakPosition = 0;
-
+  _lastValue = -1;
+  _peakValue = 0;
+  _lastValuePosition = 0;
+  _lastPeakPosition = 0;
 }
 
 void BargraphBase::drawScaleItem(float value, char *label)
@@ -237,9 +241,16 @@ void BargraphBase::drawInfiniteSymbol(float value)
   _spr->drawCentreString("o", x + 2, _laneH + 4, 1);
 }
 
+void BargraphBase::setHeader(const char *header)
+{
+  _header = (char *)header;
+  drawHeader();
+}
+
 void BargraphBase::drawHeader()
 {
   _tft->loadFont(_smallFont);
+  _tft->fillRect(_x + 5, _y + 1, _w - 10, _headerHeight - 2, TFT_BLACK);
   _tft->drawCentreString(_header, _x + (_w / 2), _y + 3, 1);
   _tft->drawFastHLine(_x, _y + _headerHeight, _w, TFT_DARKGREY);
   _tft->unloadFont();

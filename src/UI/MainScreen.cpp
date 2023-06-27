@@ -40,30 +40,29 @@ void MainScreen::begin(uint16_t x,
     // initialize the bargraphs (input and output meters)
 
     uint16_t y2 = y + height + 1;
-    _meters.begin(x, y2, w, metersHeight, _tft, _microFont, _semiLarge);
+    _meters.begin(x, y2, w, metersHeight, _tft, _reverseMode, _microFont, _semiLarge);
+
+    TouchRegion r1 = TouchRegion(x + (w / 2), y2 + (height * 2) - 10, w / 2, height, TouchCmd::MAIN_SWR_MODE);
 
     y2 += metersHeight;
     _bottom.begin(x, y2, w, height, _tft, _microFont, _mediumFont);
-
-    TouchRegion r1 = TouchRegion(x, y2, w / 2, height, TouchCmd::MAIN_PSU);
-
+    TouchRegion r2 = TouchRegion(x, y2, w / 2, height, TouchCmd::MAIN_PSU);
     uint16_t quarter = w / 4;
     //_status.begin(quarter * 2, )
-
     _btnBypass.begin(_tft, _mediumFont, _x + 20, _y + _h - 53, 80, 40, 3);
     _btnBypass.setText(TFT_WHITE, "BYPASS");
-
     setByPassState(_lastByPassState);
-
-    TouchRegion r2 = TouchRegion(_btnBypass, TouchCmd::MAIN_BYPASS);
-    _numTouchRegions = 2;
-    _touchRegions = new TouchRegion[_numTouchRegions]{r1, r2};
+    TouchRegion r3 = TouchRegion(_btnBypass, TouchCmd::MAIN_BYPASS);
+    _numTouchRegions = 3;
+    _touchRegions = new TouchRegion[_numTouchRegions]{r1, r2, r3};
     // if (true)
     // {
     //     r1.drawOutline(_tft, TFT_RED);
     //     r2.drawOutline(_tft, TFT_YELLOW);
+    //     r3.drawOutline(_tft, TFT_PINK);
     // }
     _update = true;
+    _initialized = true;
 }
 
 void MainScreen::updateOutputPower(float forwardWatts, float reverseWatts)
@@ -109,6 +108,7 @@ void MainScreen::updatePowerSupply(PowerSupplyMode mode, int intTemp, int outTem
 
 void MainScreen::setByPassState(bool state)
 {
+
     if (state)
     {
         _btnBypass.setBackColors(0x3A8F, 0x1169, 0x6C13);
@@ -120,6 +120,16 @@ void MainScreen::setByPassState(bool state)
     _btnBypass.update();
     _freq.setTransmitEnabled(!state);
     _lastByPassState = state;
+}
+
+void MainScreen::setReverseMode(ReversePowerMode mode)
+{
+    if (mode != _reverseMode)
+    {
+        _reverseMode = mode;
+        if (_initialized)
+            _meters.setReverseMode(mode);
+    }
 }
 
 void MainScreen::loop()
@@ -157,6 +167,7 @@ void MainScreen::loop()
 
 void MainScreen::end()
 {
+    _initialized = false;
     _freq.end();
     _meters.end();
     _bottom.end();

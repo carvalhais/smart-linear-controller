@@ -23,7 +23,7 @@ So far the following features are "working" (at least in the protoboard)
 
 ## User Interface
 
-Tons on nice DIY amplifiers borning nowadays are still based on 70's 16x4 dot matrix displays, mostly because User Interface and graphics are a time consuming task and are usually left aside to focus on the RF stuff. 
+Tons of nice DIY amplifiers borning nowadays are still based on 70's 16x4 dot matrix displays, mostly because User Interface and graphics are a time consuming task and are usually left aside to focus on the RF stuff. 
 
 The goal of this project is that it could be used as a platform for any kind on amplifier and you could focus on the electronics and easily adapt this code to suit your needs. 
 

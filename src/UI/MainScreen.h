@@ -36,6 +36,7 @@ public:
     void updateTemperature(float temperature);
     void updateFanSpeed(uint8_t perc);
     void setByPassState(bool state);
+    void setReverseMode(ReversePowerMode mode);
 
     Frequency _freq;
     Meters _meters;
@@ -59,12 +60,14 @@ private:
     GradientButton _btnPowerOff;
 
     bool _lastByPassState = false;
-
+    ReversePowerMode _reverseMode = ReversePowerMode::MODE_SWR;
     PowerSupplyMode _mode = PowerSupplyMode::NOT_STARTED;
+
     int _intakeTemperature;
     float _current;
     float _outputVoltage;
     int _inputVoltage;
     int _outputTemperature;
     bool _update = false;
+    bool _initialized = false;
 };

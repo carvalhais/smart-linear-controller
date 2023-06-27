@@ -1,3 +1,4 @@
+#pragma once
 #include "BargraphBase.h"
 
 class BargraphRfPower : public BargraphBase
